@@ -1,15 +1,16 @@
 import Phaser from 'phaser';
+import { gem, keyHint, panel, templeBackground } from '../art.js';
 import { POOL_LABELS } from '../progress.js';
 import { PASS_BAR, WINNING_PLAN, bestPlainRate, fireRedShares, planWinRates } from '../quantum.js';
 import { passChance } from '../stats.js';
-import { COLORS, H, PLAYERS, W, font } from './style.js';
+import { COLORS, DB, H, PLAYERS, W, hex, label } from './style.js';
 
 // A ~60 s end screen: four slides, 15 s each, auto-advancing. Every number is
 // computed here from the pool files and quantum.js, never typed in.
 const SLIDE_MS = 15000;
 const ROUNDS = 200;
-const THEORY = Math.cos(Math.PI / 8) ** 2;   // cos²(22.5°) ≈ 0.854
-// The epsilon rounds exact halves up (0.8465 → 84.7%) despite float error, matching check_pool.py.
+const THEORY = Math.cos(Math.PI / 8) ** 2;   // cos^2(22.5 deg) ~ 0.854
+// The epsilon rounds exact halves up (0.8465 -> 84.7%) despite float error, matching check_pool.py.
 const pct = (x, d = 1) => `${(x * 100 + 1e-9).toFixed(d)}%`;
 const avg = rates => Object.values(rates).reduce((a, b) => a + b, 0) / Object.values(rates).length;
 
@@ -19,9 +20,13 @@ export class Pitch extends Phaser.Scene {
   create() {
     this.stats = this.computeStats();
     this.slides = [this.slideWall, this.slideEntangled, this.slideNoise, this.slideWhy];
+    templeBackground(this, { seed: 13, candles: [[24, 60], [616, 60]] });
+    panel(this, 16, 12, 608, 320, 0.9);
     this.layer = this.add.container();
     this.progress = this.add.graphics();
-    this.add.text(W - 12, H - 10, '← → or Space: next · Esc: back to the game', font(12, COLORS.dim)).setOrigin(1, 1);
+    keyHint(this, 26, 346, ['left', 'right'], 'slides');
+    keyHint(this, 520, 346, ['ESC'], 'back');
+    this.cameras.main.fadeIn(250, 20, 12, 28);
 
     this.input.keyboard.on('keydown-RIGHT', () => this.show(this.index + 1));
     this.input.keyboard.on('keydown-SPACE', () => this.show(this.index + 1));
@@ -60,19 +65,17 @@ export class Pitch extends Phaser.Scene {
   }
 
   update() {
-    // Slide dots plus a thin bar showing time left on the current slide.
     const g = this.progress.clear();
     this.slides.forEach((_, k) => {
-      g.fillStyle(k === this.index ? COLORS.select : COLORS.outline).fillCircle(W / 2 - 30 + k * 20, H - 34, 5);
+      g.fillStyle(k === this.index ? DB.yellow : DB.iron).fillRect(W / 2 - 28 + k * 16, 343, 8, 8);
     });
     const t = Phaser.Math.Clamp((this.time.now - this.slideStart) / SLIDE_MS, 0, 1);
-    g.fillStyle(COLORS.outline).fillRect(0, H - 4, W, 4).fillStyle(COLORS.select).fillRect(0, H - 4, W * t, 4);
+    g.fillStyle(DB.iron).fillRect(0, H - 3, W, 3).fillStyle(DB.yellow).fillRect(0, H - 3, Math.round(W * t), 3);
   }
 
   // Helpers that add to the current slide.
-  text(x, y, str, size, color, opts = {}) {
-    const t = this.add.text(x, y, str, { ...font(size, color), align: opts.align ?? 'center', lineSpacing: 6 })
-      .setOrigin(opts.ox ?? 0.5, opts.oy ?? 0.5);
+  text(x, y, str, size = 8, color = COLORS.text, ox = 0.5) {
+    const t = label(this, x, y, str, size, color, ox, 0.5);
     this.layer.add(t);
     return t;
   }
@@ -84,109 +87,116 @@ export class Pitch extends Phaser.Scene {
   }
 
   title(str, sub) {
-    this.text(W / 2, 42, str, 32);
-    if (sub) this.text(W / 2, 82, sub, 17, COLORS.dim);
+    this.text(W / 2, 34, str, 16, COLORS.gold);
+    if (sub) this.text(W / 2, 54, sub, 8, COLORS.dim);
   }
 
   slideWall() {
     const { classical, classicalPass } = this.stats;
-    this.title('1 · The 75% wall', 'Each round, each vault shows a random sign. Gems must show the same color, unless both signs are B.');
+    this.title('1. THE 75% WALL', 'Each round, each vault shows a random sign, A or B.');
 
-    const rows = [['A', 'A', 'same'], ['A', 'B', 'same'], ['B', 'A', 'same'], ['B', 'B', 'different']];
+    const rows = [['A', 'A', 'the same'], ['A', 'B', 'the same'], ['B', 'A', 'the same'], ['B', 'B', 'DIFFERENT']];
     rows.forEach(([f, w, need], k) => {
-      const y = 140 + k * 30;
-      this.text(330, y, `Fire ${f}  ·  Water ${w}`, 18, COLORS.text, { ox: 0 });
-      this.text(560, y, `need ${need}`, 18, need === 'same' ? '#66bb6a' : '#ffd54f', { ox: 0 });
+      const y = 84 + k * 16;
+      this.text(196, y, `Fire ${f}  +  Water ${w}`, 8, COLORS.text, 0);
+      this.text(370, y, `need ${need} colors`, 8, need === 'DIFFERENT' ? COLORS.gold : COLORS.good, 0);
     });
 
-    this.text(W / 2, 300,
-      'Plain gems fix one color per sign. Winning every round would need\n'
-      + 'Fire A = Water A,   Fire A = Water B,   Fire B = Water A,   and   Fire B ≠ Water B.\n'
-      + 'The first three force Fire B = Water B, so one rule always breaks.', 18);
-    this.text(W / 2, 400, `Best of all 16 plain plans (checked live): ${pct(classical, 0)}`, 24, '#ffd54f');
-    this.text(W / 2, 440, `A 75% team opens the vault (${PASS_BAR}+ of ${ROUNDS}) only ${pct(classicalPass)} of the time.`, 17, COLORS.dim);
+    this.text(W / 2, 168, 'Plain gems fix one color per sign. Winning every round would need:');
+    this.text(W / 2, 186, 'Fire A = Water A,  Fire A = Water B,  Fire B = Water A,  Fire B != Water B', 8, PLAYERS.water.text);
+    this.text(W / 2, 204, 'The first three force Fire B = Water B, so one rule always breaks.');
+    this.text(W / 2, 244, `BEST PLAIN PLAN: ${pct(classical, 0)}`, 16, COLORS.gold);
+    this.text(W / 2, 266, '(checked live, over all 16 plain plans)', 8, COLORS.dim);
+    this.text(W / 2, 296, `A 75% team opens the vault (${PASS_BAR}+ of ${ROUNDS}) only ${pct(classicalPass)} of the time.`, 8, COLORS.dim);
   }
 
   slideEntangled() {
     const { redMin, redMax } = this.stats;
-    this.title('2 · Entangled gems climb over it', 'The gems share a Bell pair. Each lens sets the angle a gem is looked at from.');
+    this.title('2. ENTANGLED GEMS CLIMB OVER IT', 'The gems share a Bell pair. Each lens sets the angle a gem is read at.');
 
-    // Lens angles on a line: neighbours 45° apart, the two ends 135° apart.
     const lenses = [
       [-45, 'Watergirl B', PLAYERS.water.color], [0, 'Fireboy A', PLAYERS.fire.color],
       [45, 'Watergirl A', PLAYERS.water.color], [90, 'Fireboy B', PLAYERS.fire.color],
     ];
-    const x = deg => 200 + (deg + 45) * (560 / 135);
-    const y = 220;
+    const x = deg => Math.round(120 + (deg + 45) * (400 / 135));
+    const y = 124;
     const g = this.graphics();
-    g.lineStyle(3, COLORS.outline).lineBetween(x(-45), y, x(90), y);
+    g.fillStyle(DB.iron).fillRect(x(-45), y - 1, x(90) - x(-45), 3);
     for (const [deg, name, color] of lenses) {
-      g.fillStyle(color).fillCircle(x(deg), y, 12);
-      this.text(x(deg), y - 42, `${name}\n${deg}°`, 15);
+      g.fillStyle(DB.black).fillCircle(x(deg), y, 7);
+      g.fillStyle(color).fillCircle(x(deg), y, 6);
+      this.text(x(deg), y - 30, name, 8, hex(color));
+      this.text(x(deg), y - 18, `${deg} deg`, 8, COLORS.dim);
     }
     for (let k = 0; k < 3; k++) {
-      this.text((x(lenses[k][0]) + x(lenses[k + 1][0])) / 2, y + 26, `45° → same ${pct(THEORY, 0)}`, 14, '#66bb6a');
+      this.text((x(lenses[k][0]) + x(lenses[k + 1][0])) / 2, y + 16, `45: same ${pct(THEORY, 0)}`, 8, COLORS.good);
     }
-    g.lineStyle(2, COLORS.select).lineBetween(x(-45), y + 50, x(-45), y + 60).lineBetween(x(-45), y + 60, x(90), y + 60).lineBetween(x(90), y + 50, x(90), y + 60);
-    this.text(W / 2, y + 80, `Fireboy B vs Watergirl B: 135° → different ${pct(THEORY, 0)}  (exactly what B,B needs)`, 15, '#ffd54f');
+    g.fillStyle(DB.yellow).fillRect(x(-45), y + 30, 2, 8).fillRect(x(-45), y + 36, x(90) - x(-45), 2).fillRect(x(90) - 2, y + 30, 2, 8);
+    this.text(W / 2, y + 48, `Fireboy B vs Watergirl B: 135 apart -> DIFFERENT ${pct(THEORY, 0)}, just what B,B needs`, 8, COLORS.gold);
 
-    this.text(W / 2, 370, 'P(same color) = cos²(angle difference ÷ 2)', 22);
-    this.text(W / 2, 410, `Every sign pair wins cos²(22.5°) = ${pct(THEORY)} of the time.`, 18);
-    this.text(W / 2, 455,
-      `Yet each gem alone is a coin flip: Fireboy shows red ${pct(redMin, 0)}–${pct(redMax, 0)} of the time across all 64 dial pairs,\n`
-      + 'whatever Watergirl does. No message can pass through the gems; the link only shows when you compare.', 14, COLORS.dim);
+    this.text(W / 2, 200, 'P(same) = cos^2(diff / 2)', 16);
+    this.text(W / 2, 216, 'diff = the angle between the two lenses in play', 8, COLORS.dim);
+    this.text(W / 2, 236, `Every sign pair wins cos^2(22.5 deg) = ${pct(THEORY)} of the time.`);
+    this.text(W / 2, 270, `Yet each gem alone is a coin flip: Fireboy shows red ${pct(redMin, 0)}-${pct(redMax, 0)} of the time`, 8, COLORS.dim);
+    this.text(W / 2, 284, 'across all 64 dial pairs, whatever Watergirl does. No message can pass', 8, COLORS.dim);
+    this.text(W / 2, 298, 'through the gems: the link only shows when the results are compared.', 8, COLORS.dim);
   }
 
   slideNoise() {
     const { classical, classicalPass, entangled } = this.stats;
-    this.title('3 · Ideal simulator vs. IonQ Aria 1 noise', 'The winning plan, scored exactly from each pool file (1,000 shots per dial pair).');
+    this.title('3. IDEAL vs IONQ NOISE', 'The winning plan, scored exactly from each pool file.');
 
-    const bar = { x: 300, w: 560, lo: 0.5, hi: 1 };
-    const bx = rate => bar.x + bar.w * (rate - bar.lo) / (bar.hi - bar.lo);
-    const rows = [['Plain gems (best)', classical, 0x9aa0b4, classicalPass]];
+    const bar = { x: 232, w: 340, lo: 0.5, hi: 1 };
+    const bx = rate => Math.round(bar.x + bar.w * (rate - bar.lo) / (bar.hi - bar.lo));
+    const rows = [['Plain gems (best)', classical, DB.slate, classicalPass]];
     for (const mode of ['ideal', 'ionq-aria-1']) {
-      if (entangled[mode]) rows.push([`Entangled · ${POOL_LABELS[mode]}`, entangled[mode].rate, mode === 'ideal' ? COLORS.win : PLAYERS.water.color, entangled[mode].pass]);
+      if (entangled[mode]) rows.push([mode === 'ideal' ? 'Entangled (ideal)' : 'Entangled (IonQ)', entangled[mode].rate, mode === 'ideal' ? DB.green : DB.cyan, entangled[mode].pass]);
     }
 
     const g = this.graphics();
-    rows.forEach(([label, rate, color, pass], k) => {
-      const y = 150 + k * 62;
-      this.text(bar.x - 14, y, label, 16, COLORS.text, { ox: 1 });
-      g.fillStyle(COLORS.panel).fillRect(bar.x, y - 14, bar.w, 28);
-      g.fillStyle(color).fillRect(bar.x, y - 14, bx(rate) - bar.x, 28);
-      this.text(bx(rate) - 8, y, pct(rate), 16, '#15171d', { ox: 1 });
-      this.text(bar.x - 14, y + 20, `opens the vault ${pct(pass)} of runs`, 12, COLORS.dim, { ox: 1 });
+    rows.forEach(([name, rate, color, pass], k) => {
+      const y = 98 + k * 40;
+      this.text(bar.x - 8, y - 4, name, 8, COLORS.text, 1);
+      this.text(bar.x - 8, y + 8, `opens ${pct(pass)} of runs`, 8, COLORS.dim, 1);
+      g.fillStyle(DB.black).fillRect(bar.x - 1, y - 9, bar.w + 2, 18);
+      g.fillStyle(color).fillRect(bar.x, y - 8, bx(rate) - bar.x, 16);
+      g.fillStyle(DB.white, 0.25).fillRect(bar.x, y - 8, bx(rate) - bar.x, 2);
+      this.text(bx(rate) - 4, y, pct(rate), 8, hex(DB.black), 1);
     });
-    const top = 125;
-    const bottom = 150 + (rows.length - 1) * 62 + 20;
-    // The lines are close, so the pass label goes under its line and the theory label above.
-    for (const [rate, color, label, below] of [
-      [PASS_BAR / ROUNDS, COLORS.select, `${pct(PASS_BAR / ROUNDS, 0)} to open`, true],
-      [THEORY, 0xffffff, `theory ${pct(THEORY)}`, false],
-    ]) {
-      g.lineStyle(2, color, 0.8).lineBetween(bx(rate), top, bx(rate), bottom);
-      this.text(bx(rate), below ? bottom + 10 : top - 8, label, 12, Phaser.Display.Color.IntegerToColor(color).rgba);
+    const top = 80;
+    const bottom = 98 + (rows.length - 1) * 40 + 12;
+    for (const [rate, color, text, below] of [[PASS_BAR / ROUNDS, DB.yellow, `${pct(PASS_BAR / ROUNDS, 0)} to open`, true], [THEORY, DB.white, `theory ${pct(THEORY)}`, false]]) {
+      g.fillStyle(color, 0.9).fillRect(bx(rate), top, 1, bottom - top);
+      this.text(bx(rate), below ? bottom + 8 : top - 8, text, 8, hex(color));
     }
 
-    const lines = Object.entries(entangled).map(([mode, { pairs }]) =>
-      `${POOL_LABELS[mode]}:   ` + Object.entries(pairs).map(([p, r]) => `${p[0]},${p[1]} ${pct(r)}`).join('   '));
-    this.text(W / 2, 395, 'Per sign pair', 15, COLORS.dim);
-    this.text(W / 2, 435, lines.join('\n'), 15);
-    if (!entangled['ionq-aria-1']) this.text(W / 2, 480, 'IonQ pool not generated yet.', 14, '#ef5350');
+    this.text(W / 2, 240, 'Per sign pair (Fire, Water)', 8, COLORS.dim);
+    Object.entries(entangled).forEach(([mode, { pairs }], k) => {
+      const line = `${POOL_LABELS[mode]}:  ` + Object.entries(pairs).map(([p, r]) => `${p[0]},${p[1]} ${pct(r)}`).join('   ');
+      this.text(W / 2, 260 + k * 16, line);
+    });
+    if (!entangled['ionq-aria-1']) this.text(W / 2, 300, 'IonQ pool not generated yet.', 8, COLORS.bad);
   }
 
   slideWhy() {
-    this.title('4 · Why it matters');
-    this.text(W / 2, 150,
-      'This level is the CHSH game, the Bell test behind the 2022 Nobel Prize in Physics\n'
-      + '(Aspect, Clauser and Zeilinger). No plan written down in advance can win more than 75%,\n'
-      + 'so the colors can\'t have been fixed in advance, unless the gems signal each other faster than light.', 18);
-    this.text(W / 2, 285,
-      'Under the hood\n'
-      + 'Circuit: 2 qubits · H and CNOT make the Bell pair · one RY lens per player · measure\n'
-      + 'Pools: 64 dial pairs × 1,000 shots, from Qiskit Aer (ideal) and the IonQ Aria 1 noise model\n'
-      + 'Game: each round draws one shot from the pool for the two dials in play', 16, COLORS.dim);
-    this.text(W / 2, 420, 'Thanks for playing Entangled Vaults!', 26, '#ffd54f');
-    this.text(W / 2, 460, 'Space to play again', 16);
+    this.title('4. WHY IT MATTERS');
+    [
+      'This level is the CHSH game: the Bell test behind the 2022 Nobel Prize',
+      'in Physics (Aspect, Clauser and Zeilinger). No plan written in advance',
+      'can win more than 75%, so the colors can\'t have been fixed beforehand,',
+      'unless the gems signal each other faster than light.',
+    ].forEach((line, k) => this.text(W / 2, 76 + k * 14, line));
+    this.text(W / 2, 152, 'UNDER THE HOOD', 8, COLORS.gold);
+    [
+      'Circuit: 2 qubits. H + CNOT make the Bell pair, one RY lens each, measure.',
+      'Pools: 64 dial pairs x 1,000 shots, from Qiskit Aer and IonQ Aria 1 noise.',
+      'Game: each round draws one shot from the pool for the two dials in play.',
+    ].forEach((line, k) => this.text(W / 2, 170 + k * 14, line, 8, COLORS.dim));
+    const red = gem(this, W / 2 - 120, 246, 7, 'red');
+    const blue = gem(this, W / 2 + 120, 246, 7, 'blue');
+    this.layer.add([red, blue]);
+    this.text(W / 2, 246, 'THANKS FOR PLAYING!', 16, COLORS.gold);
+    this.text(W / 2, 278, 'Art: chierit (heroes), DragonDePlatino & DawnBringer (DawnLike), CC BY 4.0', 8, COLORS.dim);
+    this.text(W / 2, 304, 'SPACE to play again', 8);
   }
 }

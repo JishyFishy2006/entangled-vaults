@@ -33,4 +33,11 @@ export const sfx = {
   open: scene => [523, 659, 784, 1047].forEach((freq, i) =>
     tone(scene, { freq, dur: 0.3, type: 'triangle', gain: 0.06, delay: i * 0.12 })),
   shut: scene => tone(scene, { freq: 150, slide: 60, dur: 0.5, type: 'sawtooth', gain: 0.04 }),
+  tick: scene => tone(scene, { freq: 1400, dur: 0.03, type: 'square', gain: 0.015 }),
+  ready: scene => [660, 990].forEach((freq, i) => tone(scene, { freq, dur: 0.18, type: 'triangle', gain: 0.05, delay: i * 0.1 })),
+  jump: scene => tone(scene, { freq: 320, slide: 640, dur: 0.1, type: 'square', gain: 0.015 }),
+  death: scene => tone(scene, { freq: 500, slide: 70, dur: 0.45, type: 'sawtooth', gain: 0.04 }),
+  pickup: scene => [1320, 1760].forEach((freq, i) => tone(scene, { freq, dur: 0.08, type: 'triangle', gain: 0.04, delay: i * 0.06 })),
+  lever: scene => [220, 330].forEach((freq, i) => tone(scene, { freq, dur: 0.07, type: 'square', gain: 0.03, delay: i * 0.07 })),
+  door: scene => tone(scene, { freq: 120, slide: 70, dur: 0.6, type: 'sawtooth', gain: 0.03 }),
 };

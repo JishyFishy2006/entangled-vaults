@@ -1,10 +1,17 @@
 import Phaser from 'phaser';
+import { brickBlock, drawLens, gem, heroSprite, keyHint, panel, templeBackground } from '../art.js';
 import { POOL_LABELS, hintsFor, modeOf, planOf, progress } from '../progress.js';
-import { COLORS, GEM, PLAYERS, W, font } from './style.js';
+import { sfx } from '../sfx.js';
+import { COLORS, DB, PLAYERS, W, hex, label } from './style.js';
 
-const DIAL_Y = 300;
-const DIAL_R = 34;
-const SIGN_DX = { A: -80, B: 80 };
+const FLOOR = 320;
+const DIAL_Y = 138;
+const DIAL_R = 22;
+const STATION = {
+  fire: { x: 160, hero: 236, hints: 22 },
+  water: { x: 480, hero: 404, hints: 452 },
+};
+const SIGN_DX = { A: -52, B: 52 };
 
 export class PlanningHall extends Phaser.Scene {
   constructor() { super('PlanningHall'); }
@@ -15,40 +22,53 @@ export class PlanningHall extends Phaser.Scene {
     this.selected = { fire: 'A', water: 'A' };
     this.ready = { fire: false, water: false };
 
-    this.add.text(W / 2, 28, 'The Planning Hall', font(30)).setOrigin(0.5);
-    this.add.text(W / 2, 66, this.plain
-      ? 'Plain gems: choose the color your gem shows for each sign.'
-      : `Entangled gems · ${POOL_LABELS[progress.poolMode]} · each dial turns your lens in 45° steps.`, font(18, COLORS.dim)).setOrigin(0.5);
+    templeBackground(this, { seed: 3, candles: [[320, 120]] });
+    brickBlock(this, 0, FLOOR, 40, 3);
+    this.cameras.main.fadeIn(250, 20, 12, 28);
+
+    label(this, W / 2, 18, 'THE PLANNING HALL', 16, COLORS.gold);
+    label(this, W / 2, 38, this.plain
+      ? 'Plain gems: pick the color your gem shows for each sign.'
+      : `Entangled gems (${POOL_LABELS[progress.poolMode]}): turn your lenses.`, 8, COLORS.dim);
+    keyHint(this, 548, 12, ['P'], 'physics');
 
     this.g = this.add.graphics();
-    this.labels = {};
+    this.ui = {};
     for (const [id, p] of Object.entries(PLAYERS)) {
-      this.add.rectangle(p.x, 150, 40, 60, p.color);                       // placeholder hero
-      this.add.text(p.x, 194, p.name, font(20)).setOrigin(0.5);
-      this.labels[id] = {
-        A: this.add.text(p.x + SIGN_DX.A, DIAL_Y + 56, '', font(15)).setOrigin(0.5),
-        B: this.add.text(p.x + SIGN_DX.B, DIAL_Y + 56, '', font(15)).setOrigin(0.5),
-        ready: this.add.text(p.x, 400, '', font(18)).setOrigin(0.5),
-      };
+      const st = STATION[id];
+      panel(this, st.x - 132, 56, 264, 168);
+      label(this, st.x, 72, p.name.toUpperCase(), 16, p.text);
+      const ui = this.ui[id] = { gems: {}, values: {} };
       for (const s of ['A', 'B']) {
-        this.add.text(p.x + SIGN_DX[s], DIAL_Y - 58, `Sign ${s}`, font(16, COLORS.dim)).setOrigin(0.5);
+        label(this, st.x + SIGN_DX[s], 98, `SIGN ${s}`, 8, COLORS.dim);
+        ui.values[s] = label(this, st.x + SIGN_DX[s], 180, '', 8);
+        if (this.plain) ui.gems[s] = gem(this, st.x + SIGN_DX[s], DIAL_Y, 12, 'red');
       }
-      this.add.text(p.x, 455, p.help, { ...font(14, COLORS.dim), align: 'center' }).setOrigin(0.5, 0);
+      ui.ready = label(this, st.x, 206, '', 8);
+
+      ui.hero = heroSprite(this, id, st.hero, FLOOR);
+      if (id === 'water') ui.hero.setFlipX(true).setOrigin(1 - 63 / 128, 1);
+      ui.aura = this.add.image(st.hero, FLOOR - 20, 'glow').setTint(p.glow).setBlendMode(Phaser.BlendModes.ADD).setScale(1.6).setAlpha(0);
 
       const k = p.keys;
+      const arrows = id === 'water';
+      keyHint(this, st.hints, 256, arrows ? [',', '.'] : [k.down, k.up], this.plain ? 'swap color' : 'turn lens');
+      keyHint(this, st.hints, 274, arrows ? ['up', 'down'] : [k.selA, k.selB], 'pick sign A / B');
+      keyHint(this, st.hints, 292, [arrows ? 'ENTER' : k.ready], 'ready');
+
       this.input.keyboard.on(`keydown-${k.down}`, () => this.turn(id, -1));
       this.input.keyboard.on(`keydown-${k.up}`, () => this.turn(id, +1));
       this.input.keyboard.on(`keydown-${k.selA}`, () => this.select(id, 'A'));
       this.input.keyboard.on(`keydown-${k.selB}`, () => this.select(id, 'B'));
       this.input.keyboard.on(`keydown-${k.ready}`, () => this.toggleReady(id));
     }
-
-    this.add.text(W - 12, 12, 'P: how it works', font(13, COLORS.dim)).setOrigin(1, 0);
     this.input.keyboard.on('keydown-P', () => this.scene.start('Pitch'));
+    this.children.bringToTop(this.g);   // dials and selection draw above the panels
 
     const hints = hintsFor(progress);
     if (hints.length) {
-      this.add.text(W / 2, 515, `Hint: ${hints.join('  ')}`, font(15, '#ffd54f')).setOrigin(0.5);
+      panel(this, 170, 230, 300, 36);
+      label(this, W / 2, 248, hints.at(-1), 8, COLORS.gold).setWordWrapWidth(284);
     }
     this.redraw();
   }
@@ -60,7 +80,8 @@ export class PlanningHall extends Phaser.Scene {
     } else {
       this.plan[id][s] = (this.plan[id][s] + step + 8) % 8;
     }
-    this.ready[id] = false;   // changing the plan takes back "ready"
+    this.setReady(id, false);   // changing the plan takes back "ready"
+    sfx.tick(this);
     this.redraw();
   }
 
@@ -70,40 +91,52 @@ export class PlanningHall extends Phaser.Scene {
   }
 
   toggleReady(id) {
-    this.ready[id] = !this.ready[id];
+    this.setReady(id, !this.ready[id]);
     this.redraw();
     if (this.ready.fire && this.ready.water) {
       this.input.keyboard.removeAllListeners();
-      this.time.delayedCall(400, () => this.scene.start('Vaults'));
+      sfx.ready(this);
+      this.time.delayedCall(700, () => {
+        this.cameras.main.fadeOut(300, 20, 12, 28);
+        this.cameras.main.once('camerafadeoutcomplete', () => this.scene.start('Vaults'));
+      });
     }
   }
 
+  setReady(id, on) {
+    if (this.ready[id] === on) return;
+    this.ready[id] = on;
+    const ui = this.ui[id];
+    ui.hero.play(`${id}-${on ? 'cast' : 'idle'}`);
+    this.tweens.killTweensOf(ui.aura);
+    this.tweens.add({ targets: ui.aura, alpha: on ? 0.55 : 0, duration: 250 });
+    if (on) sfx.tick(this);
+  }
+
   redraw() {
-    const g = this.g;
-    g.clear();
+    const g = this.g.clear();
     for (const [id, p] of Object.entries(PLAYERS)) {
-      g.fillStyle(COLORS.panel).fillRoundedRect(p.x - 170, DIAL_Y - 80, 340, 160, 12);   // pedestal
+      const st = STATION[id];
+      const ui = this.ui[id];
       for (const s of ['A', 'B']) {
-        const x = p.x + SIGN_DX[s];
+        const x = st.x + SIGN_DX[s];
         const v = this.plan[id][s];
         if (s === this.selected[id]) {
-          g.lineStyle(3, COLORS.select).strokeRoundedRect(x - 50, DIAL_Y - 70, 100, 140, 10);
+          // Gold corner brackets around the selected dial.
+          g.fillStyle(DB.yellow);
+          for (const [cx, cy, dx, dy] of [[x - 34, DIAL_Y - 29, 1, 1], [x + 34, DIAL_Y - 29, -1, 1], [x - 34, DIAL_Y + 29, 1, -1], [x + 34, DIAL_Y + 29, -1, -1]]) {
+            g.fillRect(cx - (dx < 0 ? 8 : 0), cy - (dy < 0 ? 2 : 0), 8, 2).fillRect(cx - (dx < 0 ? 2 : 0), cy - (dy < 0 ? 8 : 0), 2, 8);
+          }
         }
         if (this.plain) {
-          g.fillStyle(GEM[v]).fillCircle(x, DIAL_Y, DIAL_R);
-          this.labels[id][s].setText(v);
+          ui.gems[s].setGem(v);
+          ui.values[s].setText(v.toUpperCase()).setColor(hex(v === 'red' ? 0xff8a7a : 0x9fd0ff));
         } else {
-          // Lens: position 0 points straight up, each step turns 45° clockwise.
-          const a = v * Math.PI / 4;
-          g.lineStyle(3, COLORS.outline).fillStyle(0x15171d).fillCircle(x, DIAL_Y, DIAL_R).strokeCircle(x, DIAL_Y, DIAL_R);
-          g.lineStyle(4, p.color).lineBetween(x, DIAL_Y, x + DIAL_R * Math.sin(a), DIAL_Y - DIAL_R * Math.cos(a));
-          this.labels[id][s].setText(`${v}  (${v * 45}°)`);
+          drawLens(g, x, DIAL_Y, DIAL_R, v, p.color);
+          ui.values[s].setText(`${v}  (${v * 45} deg)`).setColor(COLORS.text);
         }
       }
-      const key = p.keys.ready === 'ENTER' ? 'Enter' : p.keys.ready;
-      this.labels[id].ready
-        .setText(this.ready[id] ? 'READY' : `press ${key} when ready`)
-        .setColor(this.ready[id] ? '#66bb6a' : COLORS.dim);
+      ui.ready.setText(this.ready[id] ? 'READY!' : 'not ready').setColor(this.ready[id] ? COLORS.good : COLORS.dim);
     }
   }
 }

@@ -1,0 +1,98 @@
+{
+ "fire": {
+  "frameWidth": 128,
+  "frameHeight": 72,
+  "anims": {
+   "idle": {
+    "start": 0,
+    "end": 7,
+    "fps": 10,
+    "repeat": -1
+   },
+   "run": {
+    "start": 8,
+    "end": 15,
+    "fps": 14,
+    "repeat": -1
+   },
+   "jump_up": {
+    "start": 16,
+    "end": 18,
+    "fps": 10,
+    "repeat": 0
+   },
+   "jump_down": {
+    "start": 19,
+    "end": 21,
+    "fps": 10,
+    "repeat": 0
+   },
+   "hit": {
+    "start": 22,
+    "end": 27,
+    "fps": 14,
+    "repeat": 0
+   },
+   "death": {
+    "start": 28,
+    "end": 40,
+    "fps": 16,
+    "repeat": 0
+   },
+   "cast": {
+    "start": 41,
+    "end": 50,
+    "fps": 10,
+    "repeat": -1
+   }
+  }
+ },
+ "water": {
+  "frameWidth": 128,
+  "frameHeight": 72,
+  "anims": {
+   "idle": {
+    "start": 0,
+    "end": 7,
+    "fps": 10,
+    "repeat": -1
+   },
+   "run": {
+    "start": 8,
+    "end": 17,
+    "fps": 14,
+    "repeat": -1
+   },
+   "jump_up": {
+    "start": 18,
+    "end": 20,
+    "fps": 10,
+    "repeat": 0
+   },
+   "jump_down": {
+    "start": 21,
+    "end": 23,
+    "fps": 10,
+    "repeat": 0
+   },
+   "hit": {
+    "start": 24,
+    "end": 30,
+    "fps": 14,
+    "repeat": 0
+   },
+   "death": {
+    "start": 31,
+    "end": 46,
+    "fps": 16,
+    "repeat": 0
+   },
+   "cast": {
+    "start": 47,
+    "end": 58,
+    "fps": 10,
+    "repeat": -1
+   }
+  }
+ }
+}
