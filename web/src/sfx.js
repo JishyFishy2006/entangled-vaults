@@ -40,4 +40,12 @@ export const sfx = {
   pickup: scene => [1320, 1760].forEach((freq, i) => tone(scene, { freq, dur: 0.08, type: 'triangle', gain: 0.04, delay: i * 0.06 })),
   lever: scene => [220, 330].forEach((freq, i) => tone(scene, { freq, dur: 0.07, type: 'square', gain: 0.03, delay: i * 0.07 })),
   door: scene => tone(scene, { freq: 120, slide: 70, dur: 0.6, type: 'sawtooth', gain: 0.03 }),
+  // Hall of Echoes
+  chime: scene => [1568, 2093, 3136].forEach((freq, i) => tone(scene, { freq, dur: 0.6 - i * 0.15, type: 'sine', gain: 0.04 / (i + 1), delay: i * 0.02 })),
+  whoosh: scene => tone(scene, { freq: 300, slide: 900, dur: 0.25, type: 'triangle', gain: 0.025 }),
+  unseal: scene => [880, 1175, 1568, 2349].forEach((freq, i) => tone(scene, { freq, dur: 0.18, type: 'triangle', gain: 0.04, delay: i * 0.07 })),
+  flood: scene => {
+    tone(scene, { freq: 90, slide: 40, dur: 1.2, type: 'sawtooth', gain: 0.05 });
+    tone(scene, { freq: 600, slide: 120, dur: 0.6, type: 'square', gain: 0.015, delay: 0.1 });
+  },
 };

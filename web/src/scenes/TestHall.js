@@ -1,4 +1,6 @@
 import Phaser from 'phaser';
+import { T, brickBlock, keyHint, panel, templeBackground } from '../art.js';
+import { animateHero, faceHero, makeHero } from '../heroes.js';
 import { LanternDais } from '../objects/LanternDais.js';
 import { LapDial } from '../objects/LapDial.js';
 import { Mural } from '../objects/Mural.js';
@@ -26,7 +28,6 @@ const LOOP = { x1: 176, x2: 400 };
 const BRIDGE = { x1: 176, x2: 416, y: 252 };
 const VAULT_AREA = { x1: 432, x2: 640 };
 const SPAWN = { fire: 32, water: 60 };
-const SIZE = { fire: { w: 14, h: 34 }, water: { w: 14, h: 30 } };
 
 // Vault positions: one row on the floor, or (16 vaults) a second row on the shelf.
 function vaultLayout(vaults) {
@@ -56,24 +57,32 @@ export class TestHall extends Phaser.Scene {
 
   create() {
     const room = this.room;
-    this.cameras.main.setBackgroundColor(0x1e1a24);
+    templeBackground(this, { seed: 20 + room.id, candles: [[40, 150], [300, 120]] });
     const solids = this.physics.add.staticGroup();
-    const block = (x1, y, x2, h, color = DB.iron) => {
-      this.add.rectangle((x1 + x2) / 2, y + h / 2, x2 - x1, h, color).setStrokeStyle(1, DB.stone);
-      solids.add(this.add.zone((x1 + x2) / 2, y + h / 2, x2 - x1, h));
-    };
-    block(0, FLOOR, LOOP.x1, 40);
-    block(LOOP.x2, FLOOR, W, 40);
-    this.add.rectangle((LOOP.x1 + LOOP.x2) / 2, FLOOR + 28, LOOP.x2 - LOOP.x1, 24, DB.iron);
-    solids.add(this.add.zone((LOOP.x1 + LOOP.x2) / 2, FLOOR + 20, LOOP.x2 - LOOP.x1, 40));   // walk on the water
-    block(BRIDGE.x1, BRIDGE.y, BRIDGE.x2, 16, DB.stone);
-    if (room.vaults > 8) block(VAULT_AREA.x1, SHELF_Y, VAULT_AREA.x2, 16, DB.stone);
+    const solid = (x1, y, x2, h) => solids.add(this.add.zone((x1 + x2) / 2, y + h / 2, x2 - x1, h));
+    brickBlock(this, 0, FLOOR, LOOP.x1 / T, 3);
+    brickBlock(this, LOOP.x2, FLOOR, (W - LOOP.x2) / T, 3);
+    solid(0, FLOOR, W, 40);                                   // the floor runs under the water: you walk on it
+    brickBlock(this, BRIDGE.x1, BRIDGE.y, (BRIDGE.x2 - BRIDGE.x1) / T, 1);
+    solid(BRIDGE.x1, BRIDGE.y, BRIDGE.x2, 16);
+    if (room.vaults > 8) {
+      brickBlock(this, VAULT_AREA.x1, SHELF_Y, (VAULT_AREA.x2 - VAULT_AREA.x1) / T, 1);
+      solid(VAULT_AREA.x1, SHELF_Y, VAULT_AREA.x2, 16);
+    }
 
-    label(this, W / 2, 12, `${this.dev ? '' : 'THE HALL OF ECHOES - '}ROOM ${room.id} - ${room.vaults} VAULTS${room.lampsOn ? '' : ' - DARK'}`, 8, COLORS.gold);
+    panel(this, W / 2 - 200, 2, 400, 40);
+    label(this, W / 2, 14, `${this.dev ? '' : 'THE HALL OF ECHOES - '}ROOM ${room.id} - ${room.vaults} VAULTS${room.lampsOn ? '' : ' - DARK'}`, 8, COLORS.gold);
     this.status = label(this, W / 2, 30, 'Fireboy: pull the lever to begin.', 8, COLORS.text);
-    label(this, W / 2, H - 8, this.dev
-      ? 'FIRE: ADW + S use | WATER: arrows + DOWN use | ` debug 1-3 room R reset'
-      : 'FIREBOY: A D W move, S use   WATERGIRL: arrows move, DOWN opens', 8, COLORS.dim);
+    this.add.graphics().fillStyle(DB.black, 0.85).fillRect(0, H - 14, W, 14).setDepth(6);
+    if (this.dev) {
+      label(this, W / 2, H - 7, 'FIRE: ADW + S use | WATER: arrows + DOWN use | ` debug 1-3 room R reset', 8, COLORS.dim).setDepth(6);
+    } else {
+      keyHint(this, 10, H - 7, ['A', 'D', 'W'], 'move').setDepth(6);
+      keyHint(this, 104, H - 7, ['S'], 'lever / read / open').setDepth(6);
+      keyHint(this, 330, H - 7, ['left', 'right', 'up'], 'move').setDepth(6);
+      keyHint(this, 424, H - 7, ['down'], 'open a vault').setDepth(6);
+      for (const c of this.children.list.filter(o => o.type === 'Container')) c.setDepth(6);
+    }
 
     // The room's pieces. Every event goes through the hall.
     const pools = { ideal: this.cache.json.get('pool-grover-ideal'), 'ionq-aria-1': this.cache.json.get('pool-grover-ionq-aria-1') };
@@ -94,21 +103,18 @@ export class TestHall extends Phaser.Scene {
     });
     solids.add(this.loop.gateZone);
 
-    // Heroes: placeholder blocks with arcade bodies.
+    // Heroes: the animated Fire Knight and Water Priestess, feet on the floor.
     this.heroes = {};
     for (const id of ['fire', 'water']) {
-      const s = SIZE[id];
-      const rect = this.add.rectangle(SPAWN[id], FLOOR - s.h / 2, s.w, s.h, PLAYERS[id].color);
-      this.physics.add.existing(rect);
-      rect.body.setCollideWorldBounds(true);
-      this.physics.add.collider(rect, solids);
+      const sprite = makeHero(this, id, SPAWN[id], FLOOR, 1);
+      this.physics.add.collider(sprite, solids);
       const k = PLAYERS[id].keys;
       this.heroes[id] = {
-        id, rect, frozen: false,
+        id, sprite, frozen: false,
         keys: this.input.keyboard.addKeys({ left: k.left, right: k.right, jump: k.jump, use: id === 'fire' ? 'S' : 'DOWN' }),
       };
     }
-    this.physics.add.overlap(this.heroes.fire.rect, this.loop.hazard, () => this.fireInWater());
+    this.physics.add.overlap(this.heroes.fire.sprite, this.loop.hazard, () => this.fireInWater());
 
     // Debug overlay and dev keys (gray-box hall only: the overlay shows the key).
     this.debug = label(this, 6, 44, '', 8, COLORS.gold, 0, 0).setAlign('left').setVisible(false).setDepth(10);
@@ -138,7 +144,7 @@ export class TestHall extends Phaser.Scene {
   }
 
   use(hero) {
-    const { rect } = hero;
+    const { sprite: rect } = hero;
     const world = this.physics.world;
     const vault = this.vaultAt(rect);
     if (hero.id === 'fire' && world.overlap(rect, this.lever.zone)) {
@@ -211,18 +217,45 @@ export class TestHall extends Phaser.Scene {
   }
 
   flood(wrong) {
-    sfx.death(this);
+    sfx.flood(this);
     this.say(`Vault ${wrong + 1} was wrong! Lava! The key has moved.`, COLORS.bad);
-    const lava = this.add.rectangle(W / 2, FLOOR, W, 0, DB.red, 0.7).setOrigin(0.5, 1).setDepth(5);
-    this.tweens.add({ targets: lava, height: 60, duration: 300, yoyo: true, hold: 500, onComplete: () => lava.destroy() });
-    this.cameras.main.shake(300, 0.006);
-    for (const h of Object.values(this.heroes)) h.frozen = true;
-    this.time.delayedCall(1100, () => this.respawn());
+    this.cameras.main.shake(500, 0.006);
+    this.cameras.main.flash(250, 200, 60, 20);
+    for (const h of Object.values(this.heroes)) {
+      h.frozen = true;
+      h.sprite.body.setVelocity(0, 0);
+      h.sprite.play(`${h.id}-${h.id === 'water' ? 'death' : 'hit'}`);
+    }
+    // Lava wells up from the floor, holds, and drains away.
+    const g = this.add.graphics().setDepth(5);
+    const glow = this.add.rectangle(W / 2, FLOOR, W, 120, 0xff5a20, 0).setOrigin(0.5, 1).setBlendMode(Phaser.BlendModes.ADD).setDepth(5);
+    const lava = { h: 0 };
+    const draw = () => {
+      g.clear();
+      const top = FLOOR + 16 - lava.h;
+      for (let x = 0; x < W; x += 2) {
+        const s = Math.round(2 * Math.sin(this.time.now / 150 + x * 0.12));
+        g.fillStyle(0x9c2a1c).fillRect(x, top + 4 + s, 2, lava.h);
+        g.fillStyle(DB.red).fillRect(x, top + 1 + s, 2, 4);
+        g.fillStyle(DB.orange).fillRect(x, top + s, 2, 2);
+        if ((x + Math.floor(this.time.now / 60)) % 18 === 0) g.fillStyle(DB.yellow).fillRect(x, top - 1 + s, 2, 1);
+      }
+      glow.setAlpha(Math.min(0.35, lava.h / 160));
+    };
+    this.events.on('update', draw);
+    this.tweens.add({
+      targets: lava, h: 64, duration: 450, ease: 'Quad.easeOut', yoyo: true, hold: 700,
+      onComplete: () => { this.events.off('update', draw); g.destroy(); glow.destroy(); },
+    });
+    this.time.delayedCall(1500, () => this.respawn());
   }
 
   respawn() {
     for (const h of Object.values(this.heroes)) {
-      h.rect.body.reset(SPAWN[h.id], FLOOR - SIZE[h.id].h / 2);
+      h.sprite.body.reset(SPAWN[h.id], FLOOR);
+      h.sprite.body.setAllowGravity(true);
+      h.sprite.setAlpha(1).play(`${h.id}-idle`);
+      faceHero(h.sprite, h.id, 1);
       h.frozen = false;
     }
     this.loop.reset();
@@ -234,22 +267,34 @@ export class TestHall extends Phaser.Scene {
     h.frozen = true;
     sfx.death(this);
     this.say('Fireboy fizzled in the water!', COLORS.bad);
-    this.time.delayedCall(700, () => {
-      h.rect.body.reset(SPAWN.fire, FLOOR - SIZE.fire.h / 2);
+    h.sprite.body.setVelocity(0, 0).setAllowGravity(false);
+    h.sprite.play('fire-death');
+    this.add.particles(h.sprite.x, FLOOR - 4, 'px', {
+      speedY: { min: -60, max: -20 }, speedX: { min: -25, max: 25 }, lifespan: 600, emitting: false,
+      tint: [DB.white, DB.cyan], alpha: { start: 1, end: 0 },
+    }).explode(14);
+    this.time.delayedCall(1000, () => {
+      h.sprite.body.reset(SPAWN.fire, FLOOR);
+      h.sprite.body.setAllowGravity(true);
+      h.sprite.play('fire-idle');
+      faceHero(h.sprite, 'fire', 1);
       h.frozen = false;
     });
   }
 
   update() {
     for (const hero of Object.values(this.heroes)) {
-      const { body } = hero.rect;
-      if (hero.frozen) { body.setVelocity(0, 0); continue; }
+      const { body } = hero.sprite;
+      if (hero.frozen) { body.setVelocityX(0); continue; }
       const { left, right, jump, use } = hero.keys;
-      body.setVelocityX(((right.isDown ? 1 : 0) - (left.isDown ? 1 : 0)) * SPEED);
-      if (jump.isDown && (body.blocked.down || body.touching.down)) body.setVelocityY(-JUMP);
+      const dir = (right.isDown ? 1 : 0) - (left.isDown ? 1 : 0);
+      body.setVelocityX(dir * SPEED);
+      if (jump.isDown && (body.blocked.down || body.touching.down)) { body.setVelocityY(-JUMP); sfx.jump(this); }
+      faceHero(hero.sprite, hero.id, dir);
+      animateHero(hero.sprite, hero.id, dir);
       if (Phaser.Input.Keyboard.JustDown(use)) this.use(hero);
     }
-    this.loop.update(this.heroes.water.rect);
+    this.loop.update(this.heroes.water.sprite);
     this.updateDebug();
   }
 }
