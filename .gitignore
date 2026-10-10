@@ -1,0 +1,18 @@
+# Python / uv
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+
+# Node / Vite
+node_modules/
+dist/
+.vite/
+
+# OS / editors
+.DS_Store
+.vscode/
+.idea/
+
+# Env
+.env
