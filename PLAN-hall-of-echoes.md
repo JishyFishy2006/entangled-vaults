@@ -17,7 +17,7 @@ Commit after every phase.
 3. **Read:** Fireboy stands on the `LanternDais` and presses the read key. One draw from the pool unseals one vault.
 4. **Open:** a hero opens the unsealed vault: key = room cleared; wrong = lava.
 
-**Classical option.** Fireboy can pry any sealed vault open directly, same lava risk.
+**Classical option.** In Room 3 (lamps dark), Fireboy can pry any sealed vault open directly, same lava risk. In Rooms 1 and 2 (lamps on) prying is disabled: the brightest lamp would give the key away, so the only way in is the routine plus the read.
 
 **Early read.** Fireboy can press the read key on the dais at any time, including mid-laps; the read uses the laps completed so far.
 

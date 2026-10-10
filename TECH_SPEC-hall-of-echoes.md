@@ -26,7 +26,7 @@ Three rooms, each a hall of sealed vaults with one hidden key; the team either p
 
 **Reading early.** Fireboy can step onto the dais at any time. A read mid-laps uses the laps done so far, so his part of the puzzle is patience: wait for Watergirl to finish the right number of laps.
 
-**The classical option is always there.** Fireboy can pry any sealed vault open directly, with the same lava risk. That's the baseline players compare against without being told.
+**The classical option.** In Room 3, Fireboy can pry any sealed vault open directly, with the same lava risk. That's the baseline players compare against without being told. Prying is disabled in Rooms 1 and 2: their lamps show which vault is brightest, so prying it would skip the read entirely.
 
 ### Rooms
 
@@ -151,7 +151,7 @@ One `SearchHall` object per room runs a small state machine; the water loop, dia
 | LapDial | Shows laps 0 to 4; the loop gate closes at 4 | SearchHall |
 | VaultLamp × N | Brightness from the formula for (vaults, laps); dark in Room 3 | SearchHall |
 | LanternDais | Fireboy stands and presses the read key at any time: draws with the laps done so far, decodes, unseals one vault | SearchHall, quantum.js |
-| Vault × N | Sealed / unsealed / open. Opening: key or lava. Fireboy can pry a sealed one (classical option) | SearchHall |
+| Vault × N | Sealed / unsealed / open. Opening: key or lava. In Room 3, Fireboy can pry a sealed one (classical option) | SearchHall |
 
 **No light system needed.** This level doesn't use `lightAt` or a shaded alcove. If the light system from the Levels 2 and 3 plan is built later, a light-triggered early read can be added as an extra rule; the dais already covers the same lesson.
 
