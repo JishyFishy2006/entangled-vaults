@@ -145,3 +145,25 @@ export function lampLevels(vaults, laps, key) {
   const p = Math.sin((2 * laps + 1) * theta) ** 2;
   return Array.from({ length: vaults }, (_, v) => (v === key ? p : (1 - p) / (vaults - 1)));
 }
+
+// Share of a Grover pool's reads that land on the marked vault (vault 0).
+export function groverShare(pool, vaults, laps) {
+  const counts = pool.pools[groverKey(vaults, laps)];
+  const zeros = '0'.repeat(Math.log2(vaults));
+  return (counts[zeros] ?? 0) / pool.shots;
+}
+
+// Best share over the lap dial (0..4): how good a room's read can get on this pool.
+export function groverPeak(pool, vaults) {
+  return Math.max(...[0, 1, 2, 3, 4].map(k => groverShare(pool, vaults, k)));
+}
+
+// A noisy pool whose best read is under this is too weak to teach with; that room
+// reads from the ideal pool instead (Phase 17: IonQ Aria 1 gave Room 3 a 51.8% peak).
+export const GROVER_MIN_PEAK = 0.6;
+
+// Which pool a room reads from, given the chosen mode and the loaded pools by mode.
+export function groverPoolMode(mode, vaults, pools) {
+  if (mode === 'ideal' || !pools[mode]) return 'ideal';
+  return groverPeak(pools[mode], vaults) < GROVER_MIN_PEAK ? 'ideal' : mode;
+}

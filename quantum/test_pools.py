@@ -126,3 +126,16 @@ def test_grover_bit_order():
     counts = AerSimulator().run(qc, shots=100).result().get_counts()
     assert counts == {"001": 100}
     assert int("001", 2) == 1
+
+
+GROVER_NOISY = POOLS_DIR / "grover-ionq-aria-1.json"
+
+
+@pytest.mark.skipif(not GROVER_NOISY.exists(), reason="IonQ Grover pool not generated yet")
+def test_grover_noisy_pool_shape_and_overshoot():
+    noisy = load_pool(GROVER_NOISY)
+    assert noisy["mode"] == "ionq-aria-1"
+    assert set(noisy["pools"]) == {f"v{v}_k{k}" for v in (4, 8, 16) for k in range(5)}
+    assert all(sum(c.values()) == noisy["shots"] for c in noisy["pools"].values())
+    # Even with noise, a third lap in the 8-vault room is worse than two.
+    assert vault0_share(noisy, 8, 3) < vault0_share(noisy, 8, 2)

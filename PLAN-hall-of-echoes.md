@@ -141,6 +141,16 @@ web/src/
 2. **You:** run it on Qollab with IonQ Aria 1 (25q); save as `web/public/pools/grover-ionq-aria-1.json`.
 3. **Prompt:** "Report each room's peak share from the IonQ Grover pool. If Room 3's is under 0.6, set Room 3 to use the ideal pool even in noisy mode, and note the noisy number for the reveal card."
 
+**Recorded (Oct 10, 2026).** Generated with `quantum/ionq_pool_grover.py` (IonQ cloud simulator, `aria-1` noise model, seeded) instead of the Qollab copy-paste; `qollab_pool_grover.py` is still there for Qollab.
+
+| Room | Peak laps | IonQ Aria 1 | Ideal |
+| --- | --- | --- | --- |
+| 1 (4 vaults) | 1 | 100.0% | 100.0% |
+| 2 (8 vaults) | 2 | 76.5% | 94.9% |
+| 3 (16 vaults) | 3 | **51.8%** | 96.0% |
+
+Room 3 is under 0.6, so in noisy mode it reads from the ideal pool: `groverPoolMode()` in `quantum.js` applies this to any room whose noisy peak is under `GROVER_MIN_PEAK` (0.6). **Reveal card:** show Room 3's noisy figure (51.8% at 3 laps), read from the pool with `groverShare()` rather than typed in. Room 2 keeps the noisy pool; its overshoot still shows (27.5% at 3 laps, 6.9% at 4).
+
 ---
 
 ## Phase 18: Gray-box Room 2

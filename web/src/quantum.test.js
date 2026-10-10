@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import {
-  WINNING_PLAN, bestPlainRate, decodeShot, drawShot, fireRedShares, groverRead, lampLevels, pairBreakdown, planWinRates, runLevel,
+  WINNING_PLAN, bestPlainRate, decodeShot, drawShot, fireRedShares, groverPeak, groverPoolMode, groverRead, groverShare, lampLevels, pairBreakdown, planWinRates, runLevel,
 } from './quantum.js';
 import { passChance } from './stats.js';
 
@@ -10,6 +10,9 @@ const ideal = JSON.parse(
 );
 const grover = JSON.parse(
   readFileSync(new URL('../public/pools/grover-ideal.json', import.meta.url), 'utf8'),
+);
+const groverNoisy = JSON.parse(
+  readFileSync(new URL('../public/pools/grover-ionq-aria-1.json', import.meta.url), 'utf8'),
 );
 
 describe('bit order', () => {
@@ -131,5 +134,20 @@ describe('lampLevels', () => {
     expect(peak[3]).toBeLessThan(peak[2]);
     expect(peak[4]).toBeCloseTo(0.012, 3);
     expect(lampLevels(16, 3, key)[key]).toBeCloseTo(0.961, 3);
+  });
+});
+
+describe('noisy Grover pool (IonQ Aria 1)', () => {
+  const pools = { ideal: grover, 'ionq-aria-1': groverNoisy };
+  it('keeps the noisy pool for rooms 1 and 2, falls back to ideal for room 3', () => {
+    expect(groverPoolMode('ionq-aria-1', 4, pools)).toBe('ionq-aria-1');
+    expect(groverPoolMode('ionq-aria-1', 8, pools)).toBe('ionq-aria-1');
+    expect(groverPoolMode('ionq-aria-1', 16, pools)).toBe('ideal');
+    expect(groverPoolMode('ideal', 16, pools)).toBe('ideal');
+  });
+  it('records the peaks: room 3 under the 0.6 floor, room 2 still overshoots', () => {
+    expect(groverPeak(groverNoisy, 16)).toBeLessThan(0.6);
+    expect(groverShare(groverNoisy, 8, 3)).toBeLessThan(groverShare(groverNoisy, 8, 2));
+    expect(groverShare(grover, 8, 2)).toBeCloseTo(0.949, 3);
   });
 });
