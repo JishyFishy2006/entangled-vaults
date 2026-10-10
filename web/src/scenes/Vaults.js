@@ -28,7 +28,9 @@ export const LEVELS = {
     lever: { x: 24, y: 272 },
     gate: { x1: 256, x2: 264, top: CEIL + T, bottom: 176 },
     door: { x: 288, y: 176 },
-    gems: [[200, 250], [80, 214], [128, 154]],
+    // On parts of the route you can't skip (the door stays locked until all are taken):
+    // at the lever, the whole width of the elevator, and on the way to the door.
+    gems: [[24, 256], [80, 214, 32], [268, 160]],
   },
   water: {
     name: 'Tide Spire',
@@ -41,11 +43,13 @@ export const LEVELS = {
       { x: 424, y: 224, w: 2, h: 1 },                // step 2, against the spire
       { x: 456, y: 176, w: 1, h: 9 },                // the spire
     ],
-    movers: [{ x: 472, y: 208, w: 2, axis: 'x', from: 472, to: 520, speed: 34, dwell: 700 }],
+    // 3 tiles wide so walking off the spire at full speed still lands on it.
+    movers: [{ x: 472, y: 208, w: 3, axis: 'x', from: 472, to: 520, speed: 34, dwell: 700 }],
     lever: { x: 440, y: 224 },
     gate: { x1: 584, x2: 592, top: CEIL + T, bottom: FLOOR },
     door: { x: 616, y: FLOOR },
-    gems: [[372, 262], [444, 204], [512, 188]],
+    // Step 1 (where you land), step 2 (on the way to the spire), and between gate and door.
+    gems: [[404, 256, 24], [444, 206], [599, 302, 12]],
   },
 };
 
@@ -91,15 +95,16 @@ export class Vaults extends Phaser.Scene {
       const door = vaultDoor(this, L.door.x, L.door.y, id);
       const doorZone = this.physics.add.existing(this.add.zone(L.door.x, L.door.y - 24, 20, 40), true);
 
-      const gems = L.gems.map(([x, y]) => {
+      const gems = L.gems.map(([x, y, w = 16]) => {
         const g = gem(this, x, y, 5, id === 'fire' ? 'red' : 'blue');
         this.tweens.add({ targets: g, y: y - 3, duration: 700, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
-        return this.physics.add.existing(this.add.zone(x, y, 12, 14), true).setData('gem', g);
+        return this.physics.add.existing(this.add.zone(x, y, w, 18), true).setData('gem', g);
       });
+      const lock = this.makeLock(L.door.x, door.y + 22);
 
       const sprite = this.physics.add.sprite(L.start, FLOOR, p.sheet).play(`${id}-idle`);
       const hero = this.heroes[id] = {
-        id, sprite, startX: L.start, door, lever, gemsLeft: gems.length, gemsTotal: gems.length,
+        id, sprite, startX: L.start, door, lock, lever, gemsLeft: gems.length, gemsTotal: gems.length, lockedNoticeAt: 0,
         keys: this.input.keyboard.addKeys({ left: p.keys.left, right: p.keys.right, jump: p.keys.jump }),
         arrived: false, dead: false, homeFacing: id === 'water' ? 1 : -1,
       };
@@ -123,8 +128,8 @@ export class Vaults extends Phaser.Scene {
       hero.status = label(this, right ? W * 3 / 4 + 4 : W / 4 - 4, 104, '', 8, COLORS.dim);
       if (right) keyHint(this, W / 2 + 40, 80, ['left', 'right', 'up'], 'move / jump');
       else keyHint(this, 24, 80, ['A', 'D', 'W'], 'move / jump');
-      this.setStatus(hero, `${L.name}: find your lever!`, COLORS.gold);
-      this.time.delayedCall(3000, () => { if (hero.status.text.endsWith('lever!')) this.setStatus(hero, ''); });
+      this.setStatus(hero, `${L.name}: get all ${gems.length} gems!`, COLORS.gold);
+      this.time.delayedCall(3000, () => { if (hero.status.text.endsWith('gems!')) this.setStatus(hero, ''); });
     }
 
     // Shared countdown: both heroes must be in their vaults before it runs out.
@@ -316,6 +321,26 @@ export class Vaults extends Phaser.Scene {
     this.tweens.add({ targets: g, y: g.y - 14, alpha: 0, scale: 1.8, duration: 300, onComplete: () => g.destroy() });
     hero.gemsLeft--;
     hero.hudCount.setText(`${hero.gemsTotal - hero.gemsLeft} / ${hero.gemsTotal}`);
+    if (hero.gemsLeft === 0) {
+      // Last gem: the padlock drops off and the door glows.
+      hero.hudCount.setColor(COLORS.good);
+      this.tweens.add({ targets: hero.lock.g, y: 30, alpha: 0, duration: 500, ease: 'Quad.easeIn' });
+      this.tweens.add({ targets: hero.lock.glow, alpha: { from: 0.9, to: 0.35 }, duration: 600 });
+      this.time.delayedCall(150, () => sfx.ready(this));
+      this.setStatus(hero, 'Vault unlocked!', COLORS.good);
+    }
+  }
+
+  // Gold padlock on a vault door, plus the glow shown once it unlocks.
+  makeLock(x, y) {
+    const glow = this.add.image(x, y - 4, 'glow').setTint(DB.yellow).setBlendMode(Phaser.BlendModes.ADD).setScale(1.2).setAlpha(0);
+    const g = this.add.graphics({ x: 0, y: 0 });
+    g.lineStyle(2, DB.black).strokeCircle(x, y - 5, 4);
+    g.lineStyle(2, DB.yellow).strokeCircle(x, y - 5, 3);
+    g.fillStyle(DB.black).fillRect(x - 6, y - 3, 12, 10);
+    g.fillStyle(DB.yellow).fillRect(x - 5, y - 2, 10, 8);
+    g.fillStyle(DB.brown).fillRect(x - 1, y, 2, 4);
+    return { g, glow };
   }
 
   pullLever(hero) {
@@ -337,6 +362,16 @@ export class Vaults extends Phaser.Scene {
 
   arrive(hero) {
     if (hero.arrived || hero.dead || this.over) return;
+    if (hero.gemsLeft > 0) {
+      // Locked until every gem is collected; remind at most once a second.
+      if (this.time.now >= hero.lockedNoticeAt) {
+        hero.lockedNoticeAt = this.time.now + 1000;
+        sfx.loss(this);
+        this.tweens.add({ targets: hero.lock.g, x: { from: -2, to: 2 }, duration: 40, yoyo: true, repeat: 3, onComplete: () => hero.lock.g.setX(0) });
+        this.setStatus(hero, `Locked! ${hero.gemsLeft} gem${hero.gemsLeft > 1 ? 's' : ''} left.`, COLORS.bad);
+      }
+      return;
+    }
     hero.arrived = true;
     const { sprite, door } = hero;
     sprite.body.setVelocity(0, 0).setAllowGravity(false);
