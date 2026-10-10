@@ -1,0 +1,9 @@
+[project]
+name = "quantum"
+version = "0.1.0"
+requires-python = ">=3.15"
+dependencies = [
+    "pytest>=9.1.1",
+    "qiskit>=2.5.2",
+    "qiskit-aer>=0.17.2",
+]
