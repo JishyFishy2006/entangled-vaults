@@ -48,7 +48,9 @@ export class Boot extends Phaser.Scene {
     ctx.fillRect(0, 0, 64, 64);
     glow.refresh();
 
-    // Dev shortcut until the Level select exists: /#testhall opens the gray-box hall.
-    this.scene.start(window.location.hash === '#testhall' ? 'TestHall' : 'Title');
+    // Dev shortcut until the Level select exists: /#testhall (room 2), /#testhall1, /#testhall3.
+    const hall = window.location.hash.match(/^#testhall([123])?$/);
+    if (hall) this.scene.start('TestHall', { room: Number(hall[1] ?? 2) });
+    else this.scene.start('Title');
   }
 }

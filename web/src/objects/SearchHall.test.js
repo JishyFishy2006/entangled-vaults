@@ -70,6 +70,18 @@ describe('SearchHall', () => {
     expect(hall.failedReads).toBe(1);
   });
 
+  it('has already counted the failed read when it announces the lava (for the mural)', () => {
+    const hall = new SearchHall({ vaults: 16, lampsOn: false, pool });
+    const seen = [];
+    hall.onChange = (event) => { if (event === 'lava') seen.push(hall.failedReads); };
+    for (let i = 0; i < 2; i++) {
+      hall.pullLever(); hall.read();
+      hall.unsealed = (hall.key + 1) % 16;
+      hall.open(hall.unsealed);
+    }
+    expect(seen).toEqual([1, 2]);
+  });
+
   it('forbids prying in lit rooms and allows it in dark ones', () => {
     const lit = new SearchHall({ vaults: 8, pool, rng: fixedKey(4) });
     expect(lit.pry(4)).toBe('denied');
@@ -97,5 +109,25 @@ describe('SearchHall', () => {
     expect(r[3]).toBeLessThan(0.45);
     expect(r[4]).toBeLessThan(0.05);
     expect(r[1]).toBeGreaterThan(0.65);
+  });
+});
+
+describe('the three rooms', () => {
+  it('each reads right most of the time at its best lap count, and Room 3 forbids nothing but shows no lamps', async () => {
+    const { ROOMS } = await import('./rooms.js');
+    for (const room of ROOMS) {
+      let right = 0;
+      for (let i = 0; i < 1000; i++) {
+        const hall = new SearchHall({ vaults: room.vaults, lampsOn: room.lampsOn, pool });
+        hall.pullLever();
+        for (let k = 0; k < room.bestLaps; k++) hall.lap();
+        if (hall.read() === hall.key) right++;
+      }
+      expect(right / 1000).toBeGreaterThan(0.9);
+    }
+    const dark = new SearchHall({ vaults: 16, lampsOn: false, pool });
+    dark.pullLever(); dark.lap();
+    expect(dark.lamps().every(l => l === 0)).toBe(true);
+    expect(dark.canPry).toBe(true);
   });
 });

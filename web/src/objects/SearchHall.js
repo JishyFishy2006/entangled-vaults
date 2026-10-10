@@ -63,9 +63,8 @@ export class SearchHall {
   // Either hero opens the unsealed vault. Returns 'key', 'lava' or 'sealed' (not openable).
   open(vault) {
     if (this.state !== 'read' || vault !== this.unsealed) return 'sealed';
-    const result = this.resolve(vault);
-    if (result === 'lava') this.failedReads++;
-    return result;
+    if (vault !== this.key) this.failedReads++;    // counted before 'lava' is announced
+    return this.resolve(vault);
   }
 
   // Fireboy forces a sealed vault: only where the lamps are dark. Returns 'key', 'lava' or 'denied'.
