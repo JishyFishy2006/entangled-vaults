@@ -2,7 +2,7 @@ import { markCleared } from '../clears.js';
 import { Menu } from '../menu.js';
 import { ROOMS } from '../objects/rooms.js';
 import { groverPoolMode, groverShare } from '../quantum.js';
-import { panel } from '../art.js';
+import { keyHint, panel } from '../art.js';
 import { COLORS, DB, H, W, label } from './style.js';
 import { TestHall } from './TestHall.js';
 
@@ -23,6 +23,17 @@ export class HallOfEchoes extends TestHall {
     super.create();
     this.cameras.main.fadeIn(300, 20, 12, 28);
     this.say(INTRO[this.room.id], COLORS.gold);
+    keyHint(this, 560, 14, ['P'], 'physics').setDepth(30);
+    this.input.keyboard.on('keydown-P', () => this.physicsCard());
+    // Keys released while the card was up would otherwise stay held.
+    this.events.on('resume', () => this.input.keyboard.resetKeys());
+  }
+
+  // The physics card, over the paused room; Esc comes straight back.
+  physicsCard() {
+    if (this.scene.isPaused()) return;
+    this.scene.launch('HallPitch', { from: this.scene.key });
+    this.scene.pause();
   }
 
   onCleared() {
@@ -63,6 +74,7 @@ export class HallOfEchoes extends TestHall {
 
     new Menu(this, W / 2, 296, [
       { label: 'Play again', action: () => this.leave('HallOfEchoes', { room: 1 }) },
+      { label: 'How it works', action: () => this.physicsCard(), keep: true },
       { label: 'Level select', action: () => this.leave('LevelSelect', { level: 2 }) },
     ], { depth: d + 1 });
   }

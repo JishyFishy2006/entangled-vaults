@@ -205,7 +205,7 @@ Room 3 is under 0.6, so in noisy mode it reads from the ideal pool: `groverPoolM
 
 - Don't change the circuit, the XOR relabel, the formula or the lap cap of 4.
 - Lamps come from `lampLevels`; reads come from the pool through `groverRead`. Never mix them.
-- No quantum vocabulary on screen except the reveal card.
+- No quantum vocabulary on screen except the reveal card and the opt-in physics card (`HallPitch`, opened with P, like Level 1's pitch).
 - If time is short, Room 2 alone (lamps on) is a complete level.
 - Never lock Level 2 behind Level 1; the Level select always offers both.
 - Run tests at the end of each phase, report the numbers, and stop.

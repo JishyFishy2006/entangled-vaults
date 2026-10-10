@@ -3,7 +3,7 @@ import { sfx } from './sfx.js';
 import { COLORS, DB, label } from './scenes/style.js';
 
 // A row of buttons driven by either player's left/right keys; Enter or Space picks.
-// options: [{ label, action }]. Centered on (cx, y). `depth` lifts it above overlays.
+// options: [{ label, action, keep? }]. Centered on (cx, y). `depth` lifts it above overlays.
 export class Menu {
   constructor(scene, cx, y, options, { gap = 10, depth = 0 } = {}) {
     Object.assign(this, { scene, options, index: 0 });
@@ -34,9 +34,10 @@ export class Menu {
 
   choose() {
     if (this.done) return;
-    this.done = true;
+    const option = this.options[this.index];
+    this.done = !option.keep;      // keep: the option opens an overlay and the menu stays live
     sfx.ready(this.scene);
-    this.options[this.index].action();
+    option.action();
   }
 
   draw() {

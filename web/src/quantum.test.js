@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import {
-  WINNING_PLAN, bestPlainRate, decodeShot, drawShot, fireRedShares, groverPeak, groverPoolMode, groverRead, groverShare, lampLevels, pairBreakdown, planWinRates, runLevel,
+  WINNING_PLAN, bestPlainRate, decodeShot, drawShot, classicalLooks, bestLaps, fireRedShares, groverAmplitudes, groverPeak, groverPeakLaps, groverPoolMode, groverRead, groverShare, lampLevels, pairBreakdown, planWinRates, runLevel,
 } from './quantum.js';
 import { passChance } from './stats.js';
 
@@ -149,5 +149,37 @@ describe('noisy Grover pool (IonQ Aria 1)', () => {
     expect(groverPeak(groverNoisy, 16)).toBeLessThan(0.6);
     expect(groverShare(groverNoisy, 8, 3)).toBeLessThan(groverShare(groverNoisy, 8, 2));
     expect(groverShare(grover, 8, 2)).toBeCloseTo(0.949, 3);
+  });
+});
+
+describe('Grover numbers for the physics card', () => {
+  it('amplitudes square to the lamp levels, and the fountain only flips a sign', () => {
+    for (const v of [4, 8, 16]) {
+      for (let k = 0; k <= 4; k++) {
+        const amps = groverAmplitudes(v, k, 3);
+        const lamps = lampLevels(v, k, 3);
+        amps.forEach((a, i) => expect(a * a).toBeCloseTo(lamps[i], 12));
+        const flipped = groverAmplitudes(v, k, 3, true);
+        expect(flipped[3]).toBeCloseTo(-amps[3], 12);
+        expect(flipped[0]).toBeCloseTo(amps[0], 12);
+      }
+    }
+  });
+  it('one lap in 8 vaults: the mirror reflects about the average (key 0.354 -> 0.884)', () => {
+    const spread = groverAmplitudes(8, 0, 0);
+    const flipped = groverAmplitudes(8, 0, 0, true);
+    const mean = flipped.reduce((a, b) => a + b, 0) / 8;
+    const reflected = flipped.map(a => 2 * mean - a);
+    expect(spread[0]).toBeCloseTo(1 / Math.sqrt(8), 12);
+    reflected.forEach((a, i) => expect(a).toBeCloseTo(groverAmplitudes(8, 1, 0)[i], 12));
+    expect(reflected[0]).toBeCloseTo(0.884, 3);
+  });
+  it('best laps and classical looks match the spec', () => {
+    expect([4, 8, 16].map(bestLaps)).toEqual([1, 2, 3]);
+    expect([4, 8, 16].map(groverPeakLaps)).toEqual([1, 2, 3]);
+    expect(groverPeakLaps(1e6)).toBe(785);
+    expect(classicalLooks(4)).toBeCloseTo(2.25, 10);
+    expect(classicalLooks(8)).toBeCloseTo(4.375, 10);
+    expect(classicalLooks(16)).toBeCloseTo(8.4375, 10);
   });
 });

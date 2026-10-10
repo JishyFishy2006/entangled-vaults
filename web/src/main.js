@@ -7,6 +7,7 @@ import { Vaults } from './scenes/Vaults.js';
 import { Run } from './scenes/Run.js';
 import { Verdict } from './scenes/Verdict.js';
 import { Pitch } from './scenes/Pitch.js';
+import { HallPitch } from './scenes/HallPitch.js';
 import { TestHall } from './scenes/TestHall.js';
 import { COLORS, FONT, H, W } from './scenes/style.js';
 
@@ -30,7 +31,7 @@ loadFont().then(() => {
     backgroundColor: COLORS.bg,
     scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
     physics: { default: 'arcade', arcade: { gravity: { x: 0, y: 820 } } },
-    scene: [Boot, LevelSelect, PlanningHall, Vaults, Run, Verdict, Pitch, HallOfEchoes, TestHall],
+    scene: [Boot, LevelSelect, PlanningHall, Vaults, Run, Verdict, Pitch, HallOfEchoes, HallPitch, TestHall],
   });
 
   // Dev builds only: handle for testing from the browser console.

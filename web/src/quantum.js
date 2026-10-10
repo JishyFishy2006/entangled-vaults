@@ -167,3 +167,29 @@ export function groverPoolMode(mode, vaults, pools) {
   if (mode === 'ideal' || !pools[mode]) return 'ideal';
   return groverPeak(pools[mode], vaults) < GROVER_MIN_PEAK ? 'ideal' : mode;
 }
+
+// ---- Grover numbers for the physics card (all from the formula) ----
+
+const groverTheta = vaults => Math.asin(1 / Math.sqrt(vaults));
+
+// Amplitudes of every vault after `laps` laps (signed). With afterFountain, the
+// fountain has just flipped the key's sign but the mirror hasn't reflected yet.
+export function groverAmplitudes(vaults, laps, key, afterFountain = false) {
+  const angle = (2 * laps + 1) * groverTheta(vaults);
+  const keyAmp = Math.sin(angle) * (afterFountain ? -1 : 1);
+  const rest = Math.cos(angle) / Math.sqrt(vaults - 1);
+  return Array.from({ length: vaults }, (_, v) => (v === key ? keyAmp : rest));
+}
+
+// Lap count (on the 0..4 dial) that gives the best read.
+export function bestLaps(vaults) {
+  const p = k => lampLevels(vaults, k, 0)[0];
+  return [0, 1, 2, 3, 4].reduce((best, k) => (p(k) > p(best) + 1e-12 ? k : best), 0);
+}
+
+// Laps at the peak for any size (not capped at the dial): the nearest to (pi/4)√N - 1/2.
+export const groverPeakLaps = vaults => Math.max(0, Math.round(Math.PI / (4 * groverTheta(vaults)) - 0.5));
+
+// Average looks for a classical search that remembers what it checked: open vaults
+// one by one; if N - 1 were empty, the last one must be it.
+export const classicalLooks = vaults => (vaults + 1) / 2 - 1 / vaults;

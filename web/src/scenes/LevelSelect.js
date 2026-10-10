@@ -7,6 +7,7 @@ import { COLORS, DB, H, W, label } from './style.js';
 
 const FLOOR = 320;
 const CARD = { w: 200, h: 112, y: 116, gap: 24 };
+const PHYSICS = { 1: 'Pitch', 2: 'HallPitch' };   // each level's physics card
 
 // The game's first screen: the title, and one card per level. Nothing is locked.
 export class LevelSelect extends Phaser.Scene {
@@ -67,7 +68,10 @@ export class LevelSelect extends Phaser.Scene {
     for (const k of ['LEFT', 'A']) kb.on(`keydown-${k}`, () => this.move(-1));
     for (const k of ['RIGHT', 'D']) kb.on(`keydown-${k}`, () => this.move(1));
     for (const k of ['ENTER', 'SPACE']) kb.on(`keydown-${k}`, () => this.start());
-    kb.once('keydown-P', () => this.go('Pitch'));
+    kb.on('keydown-P', () => {
+      const { id } = this.cards[this.index].level;
+      this.go(PHYSICS[id], { exit: { scene: 'LevelSelect', data: { level: id } } });
+    });
     this.select();
   }
 
