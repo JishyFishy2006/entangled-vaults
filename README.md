@@ -9,6 +9,7 @@ Watergirl uses the arrow keys (, and . turn a lens, Enter ready).
 
 - `PLAN.md` — phased build plan
 - `TECH_SPEC.md` — Level 1 tech spec
+- `PLAN-hall-of-echoes.md`, `TECH_SPEC-hall-of-echoes.md` — Level 2 (Grover's search) plan and spec
 - `quantum/` — Qiskit circuit and shot-pool generation (Python, uv)
 - `web/` — the game (Vite, Phaser 3)
 - `tools/build_assets.py` — rebuilds `web/public/assets/` from the art packs
