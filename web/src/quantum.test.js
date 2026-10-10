@@ -1,12 +1,13 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { decodeShot, drawShot, roundWon, runLevel } from './quantum.js';
+import {
+  WINNING_PLAN, bestPlainRate, decodeShot, drawShot, fireRedShares, planWinRates, runLevel,
+} from './quantum.js';
+import { passChance } from './stats.js';
 
 const ideal = JSON.parse(
   readFileSync(new URL('../public/pools/ideal.json', import.meta.url), 'utf8'),
 );
-const WINNING_PLAN = { fire: { A: 0, B: 2 }, water: { A: 1, B: 7 } };
-const SIGN_PAIRS = [['A', 'A'], ['A', 'B'], ['B', 'A'], ['B', 'B']];
 
 describe('bit order', () => {
   it("'01' (only qubit 0 flipped) is Fireboy blue, Watergirl red", () => {
@@ -25,16 +26,7 @@ describe('drawShot', () => {
 
 describe('classical cap', () => {
   it('best of the 16 plain-gem plans scores exactly 0.75', () => {
-    const colors = ['red', 'blue'];
-    let best = 0;
-    for (const fa of colors) for (const fb of colors) for (const wa of colors) for (const wb of colors) {
-      const fire = { A: fa, B: fb };
-      const water = { A: wa, B: wb };
-      const wins = SIGN_PAIRS.filter(([fs, ws]) =>
-        roundWon({ fire: fire[fs], water: water[ws] }, fs, ws)).length;
-      best = Math.max(best, wins / SIGN_PAIRS.length);
-    }
-    expect(best).toBe(0.75);
+    expect(bestPlainRate()).toBe(0.75);
   });
 });
 
@@ -48,5 +40,27 @@ describe('quantum win rate', () => {
       rounds += run.rounds;
     }
     expect(wins / rounds).toBeGreaterThanOrEqual(0.83);
+  });
+});
+
+describe('exact rates from the pool', () => {
+  it('match check_pool.py on ideal.json, so JS and Python decode bits the same way', () => {
+    const r = planWinRates(WINNING_PLAN, ideal);
+    expect(r.AA).toBeCloseTo(0.850, 3);
+    expect(r.AB).toBeCloseTo(0.869, 3);
+    expect(r.BA).toBeCloseTo(0.842, 3);
+    expect(r.BB).toBeCloseTo(0.867, 3);
+  });
+  it("Fireboy's red share stays near 50% for every dial pair (no signalling)", () => {
+    const shares = fireRedShares(ideal);
+    expect(shares).toHaveLength(64);
+    for (const s of shares) expect(Math.abs(s - 0.5)).toBeLessThan(0.05);
+  });
+});
+
+describe('passChance', () => {
+  it('matches the binomial odds in the spec', () => {
+    expect(passChance(0.75, 200, 160)).toBeCloseTo(0.058, 3);
+    expect(passChance(0.854, 200, 160)).toBeCloseTo(0.985, 3);
   });
 });

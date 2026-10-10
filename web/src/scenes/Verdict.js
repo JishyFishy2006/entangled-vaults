@@ -51,7 +51,9 @@ export class Verdict extends Phaser.Scene {
       this.input.keyboard.on('keydown-T', () => { togglePoolMode(progress); showPool(); });
     }
 
-    this.add.text(W / 2, 512, passed ? 'Press SPACE to play again' : 'Press SPACE to return to the Planning Hall', font(16)).setOrigin(0.5);
-    this.input.keyboard.once('keydown-SPACE', () => this.scene.start('PlanningHall'));
+    // An entangled pass goes on to the pitch screen; everything else back to planning.
+    const next = passed && mode !== 'plain' ? 'Pitch' : 'PlanningHall';
+    this.add.text(W / 2, 512, next === 'Pitch' ? 'Press SPACE to see how it works' : 'Press SPACE to return to the Planning Hall', font(16)).setOrigin(0.5);
+    this.input.keyboard.once('keydown-SPACE', () => this.scene.start(next));
   }
 }

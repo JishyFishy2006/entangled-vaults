@@ -66,3 +66,50 @@ export function runLevel(plan, pool, mode, rounds = 200) {
   }
   return { wins, rounds, log };
 }
+
+// ---- Exact rates from a pool (used by the pitch screen; no random draws) ----
+
+export const WINNING_PLAN = { fire: { A: 0, B: 2 }, water: { A: 1, B: 7 } };
+const SIGN_PAIRS = [['A', 'A'], ['A', 'B'], ['B', 'A'], ['B', 'B']];
+
+// Win rate for each sign pair ('AA', 'AB', 'BA', 'BB') of a dial plan, straight from the tallies.
+export function planWinRates(plan, pool) {
+  const rates = {};
+  for (const [fs, ws] of SIGN_PAIRS) {
+    const counts = pool.pools[`f${plan.fire[fs]}_w${plan.water[ws]}`];
+    let won = 0;
+    let total = 0;
+    for (const [bits, n] of Object.entries(counts)) {
+      total += n;
+      if (roundWon(decodeShot(bits), fs, ws)) won += n;
+    }
+    rates[fs + ws] = won / total;
+  }
+  return rates;
+}
+
+// Fireboy's share of red for every dial combination: ~0.5 everywhere means no signalling.
+export function fireRedShares(pool) {
+  return Object.values(pool.pools).map(counts => {
+    let red = 0;
+    let total = 0;
+    for (const [bits, n] of Object.entries(counts)) {
+      total += n;
+      if (decodeShot(bits).fire === 'red') red += n;
+    }
+    return red / total;
+  });
+}
+
+// Best win rate over all 16 plain-gem plans (a fixed color per sign per player).
+export function bestPlainRate() {
+  const colors = ['red', 'blue'];
+  let best = 0;
+  for (const fa of colors) for (const fb of colors) for (const wa of colors) for (const wb of colors) {
+    const fire = { A: fa, B: fb };
+    const water = { A: wa, B: wb };
+    const wins = SIGN_PAIRS.filter(([fs, ws]) => roundWon({ fire: fire[fs], water: water[ws] }, fs, ws)).length;
+    best = Math.max(best, wins / SIGN_PAIRS.length);
+  }
+  return best;
+}

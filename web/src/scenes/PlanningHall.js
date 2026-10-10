@@ -43,6 +43,9 @@ export class PlanningHall extends Phaser.Scene {
       this.input.keyboard.on(`keydown-${k.ready}`, () => this.toggleReady(id));
     }
 
+    this.add.text(W - 12, 12, 'P: how it works', font(13, COLORS.dim)).setOrigin(1, 0);
+    this.input.keyboard.on('keydown-P', () => this.scene.start('Pitch'));
+
     const hints = hintsFor(progress);
     if (hints.length) {
       this.add.text(W / 2, 515, `Hint: ${hints.join('  ')}`, font(15, '#ffd54f')).setOrigin(0.5);

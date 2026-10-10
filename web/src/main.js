@@ -4,6 +4,7 @@ import { PlanningHall } from './scenes/PlanningHall.js';
 import { Vaults } from './scenes/Vaults.js';
 import { Run } from './scenes/Run.js';
 import { Verdict } from './scenes/Verdict.js';
+import { Pitch } from './scenes/Pitch.js';
 import { COLORS, H, W } from './scenes/style.js';
 
 const game = new Phaser.Game({
@@ -14,7 +15,7 @@ const game = new Phaser.Game({
   backgroundColor: COLORS.bg,
   scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
   physics: { default: 'arcade', arcade: { gravity: { x: 0, y: 900 } } },
-  scene: [Boot, PlanningHall, Vaults, Run, Verdict],
+  scene: [Boot, PlanningHall, Vaults, Run, Verdict, Pitch],
 });
 
 // Dev builds only: handle for testing from the browser console.
