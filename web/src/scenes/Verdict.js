@@ -12,7 +12,7 @@ export class Verdict extends Phaser.Scene {
   constructor() { super('Verdict'); }
 
   init(data) {
-    this.run = data;   // { wins, rounds }
+    this.run = data;   // { wins, rounds, pairs }
   }
 
   create() {
@@ -68,6 +68,8 @@ export class Verdict extends Phaser.Scene {
       water.once('animationcomplete', () => water.play('water-idle'));
     }
 
+    if (this.run.pairs) this.pairPanel(this.run.pairs);
+
     // Result panel.
     panel(this, 24, 256, 592, 96);
     label(this, W / 2, 272, passed ? 'THE VAULT OPENS!' : 'THE VAULT STAYS SHUT', 16, passed ? COLORS.good : COLORS.bad);
@@ -103,5 +105,33 @@ export class Verdict extends Phaser.Scene {
       this.cameras.main.fadeOut(250, 20, 12, 28);
       this.cameras.main.once('camerafadeoutcomplete', () => this.scene.start(next));
     });
+  }
+
+  // How this run went for each sign pair, so a team can see where its plan fails.
+  pairPanel(pairs) {
+    const x = 16;
+    const y = 52;
+    const rowH = 18;
+    panel(this, x, y, 168, 136);
+    label(this, x + 84, y + 14, 'BY SIGN PAIR', 8, COLORS.gold);
+    label(this, x + 84, y + 26, '(Fire, Water)', 8, COLORS.dim);
+    const g = this.add.graphics();
+    let weakest = null;
+    Object.entries(pairs).forEach(([pair, p], k) => {
+      const rate = p.rounds ? p.won / p.rounds : 0;
+      const good = rate >= 0.75;
+      const ry = y + 44 + k * rowH;
+      label(this, x + 10, ry, `${pair[0]},${pair[1]}`, 8, COLORS.text, 0, 0.5);
+      label(this, x + 42, ry, p.needSame ? 'SAME' : 'DIFF', 8, p.needSame ? COLORS.good : COLORS.gold, 0, 0.5);
+      g.fillStyle(DB.black).fillRect(x + 80, ry - 4, 42, 8);
+      g.fillStyle(good ? DB.green : DB.red).fillRect(x + 81, ry - 3, Math.round(40 * rate), 6);
+      label(this, x + 158, ry, `${Math.round(rate * 100)}%`, 8, good ? COLORS.text : COLORS.bad, 1, 0.5);
+      if (!weakest || rate < weakest.rate) weakest = { pair, rate, needSame: p.needSame };
+    });
+    if (weakest && weakest.rate < 0.75) {
+      label(this, x + 84, y + 124, `Weakest: ${weakest.pair[0]},${weakest.pair[1]} (${weakest.needSame ? 'SAME' : 'DIFF'})`, 8, COLORS.bad);
+    } else {
+      label(this, x + 84, y + 124, 'Every pair holds up!', 8, COLORS.good);
+    }
   }
 }

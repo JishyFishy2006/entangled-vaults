@@ -113,3 +113,15 @@ export function bestPlainRate() {
   }
   return best;
 }
+
+// Per sign pair results of a run's log: { AA: { won, rounds, needSame }, ... }.
+export function pairBreakdown(log) {
+  const out = {};
+  for (const [fs, ws] of SIGN_PAIRS) out[fs + ws] = { won: 0, rounds: 0, needSame: !(fs === 'B' && ws === 'B') };
+  for (const r of log) {
+    const p = out[r.fireSign + r.waterSign];
+    p.rounds++;
+    if (r.won) p.won++;
+  }
+  return out;
+}

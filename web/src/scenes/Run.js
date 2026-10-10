@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { brickBlock, gem, heroSprite, keyHint, panel, templeBackground } from '../art.js';
 import { POOL_LABELS, modeOf, planOf, progress } from '../progress.js';
-import { PASS_BAR, runLevel } from '../quantum.js';
+import { PASS_BAR, pairBreakdown, runLevel } from '../quantum.js';
 import { isMuted, sfx, toggleMute } from '../sfx.js';
 import { COLORS, DB, GEM, PLAYERS, W, hex, label } from './style.js';
 
@@ -130,7 +130,7 @@ export class Run extends Phaser.Scene {
     if (this.i === this.result.rounds) {
       this.time.delayedCall(1000, () => {
         this.cameras.main.fadeOut(300, 20, 12, 28);
-        this.cameras.main.once('camerafadeoutcomplete', () => this.scene.start('Verdict', { wins: this.wins, rounds: this.result.rounds }));
+        this.cameras.main.once('camerafadeoutcomplete', () => this.scene.start('Verdict', { wins: this.wins, rounds: this.result.rounds, pairs: pairBreakdown(this.result.log) }));
       });
     }
   }

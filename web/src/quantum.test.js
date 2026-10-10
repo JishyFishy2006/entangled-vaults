@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import {
-  WINNING_PLAN, bestPlainRate, decodeShot, drawShot, fireRedShares, planWinRates, runLevel,
+  WINNING_PLAN, bestPlainRate, decodeShot, drawShot, fireRedShares, pairBreakdown, planWinRates, runLevel,
 } from './quantum.js';
 import { passChance } from './stats.js';
 
@@ -62,5 +62,28 @@ describe('passChance', () => {
   it('matches the binomial odds in the spec', () => {
     expect(passChance(0.75, 200, 160)).toBeCloseTo(0.058, 3);
     expect(passChance(0.854, 200, 160)).toBeCloseTo(0.985, 3);
+  });
+});
+
+describe('pairBreakdown', () => {
+  it('counts rounds and wins per sign pair, adding up to the run', () => {
+    const run = runLevel(WINNING_PLAN, ideal, 'ideal');
+    const pairs = pairBreakdown(run.log);
+    expect(Object.keys(pairs)).toEqual(['AA', 'AB', 'BA', 'BB']);
+    expect(Object.values(pairs).reduce((n, p) => n + p.rounds, 0)).toBe(run.rounds);
+    expect(Object.values(pairs).reduce((n, p) => n + p.won, 0)).toBe(run.wins);
+    expect(pairs.BB.needSame).toBe(false);
+    expect(pairs.AB.needSame).toBe(true);
+  });
+  it('shows the swapped-Watergirl plan failing on B,A and B,B', () => {
+    const swapped = { fire: { A: 0, B: 2 }, water: { A: 7, B: 1 } };
+    let ba = 0, bb = 0, aa = 0;
+    for (let i = 0; i < 10; i++) {
+      const p = pairBreakdown(runLevel(swapped, ideal, 'ideal').log);
+      ba += p.BA.won / p.BA.rounds; bb += p.BB.won / p.BB.rounds; aa += p.AA.won / p.AA.rounds;
+    }
+    expect(ba / 10).toBeLessThan(0.3);
+    expect(bb / 10).toBeLessThan(0.3);
+    expect(aa / 10).toBeGreaterThan(0.75);
   });
 });
