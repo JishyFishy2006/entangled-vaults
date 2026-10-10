@@ -2,6 +2,8 @@ import Phaser from 'phaser';
 import { brickBlock, gem, heroSprite, keyHint, panel, templeBackground } from '../art.js';
 import { POOL_LABELS, hintsFor, progress, recordRun, togglePoolMode } from '../progress.js';
 import { PASS_BAR } from '../quantum.js';
+import { markCleared } from '../clears.js';
+import { Menu } from '../menu.js';
 import { sfx } from '../sfx.js';
 import { COLORS, DB, W, label } from './style.js';
 
@@ -98,13 +100,24 @@ export class Verdict extends Phaser.Scene {
       this.input.keyboard.on('keydown-T', () => { togglePoolMode(progress); showPool(); sfx.tick(this); });
     }
 
-    // An entangled pass goes on to the pitch screen; everything else back to planning.
-    const next = passed && mode !== 'plain' ? 'Pitch' : 'PlanningHall';
-    keyHint(this, 420, 336, ['SPACE'], next === 'Pitch' ? 'how it works' : 'plan again');
-    this.input.keyboard.once('keydown-SPACE', () => {
+    // An entangled pass clears Level 1 and offers the next level; otherwise plan again.
+    const go = (scene, data) => {
       this.cameras.main.fadeOut(250, 20, 12, 28);
-      this.cameras.main.once('camerafadeoutcomplete', () => this.scene.start(next));
-    });
+      this.cameras.main.once('camerafadeoutcomplete', () => this.scene.start(scene, data));
+    };
+    if (passed && mode !== 'plain') {
+      markCleared(1);
+      new Menu(this, 432, 336, [
+        { label: 'Next level', action: () => go('HallOfEchoes', { room: 1 }) },
+        { label: 'How it works', action: () => go('Pitch') },
+        { label: 'Level select', action: () => go('LevelSelect', { level: 1 }) },
+      ]);
+    } else {
+      new Menu(this, 432, 336, [
+        { label: 'Plan again', action: () => go('PlanningHall') },
+        { label: 'Level select', action: () => go('LevelSelect', { level: 1 }) },
+      ]);
+    }
   }
 
   // How this run went for each sign pair, so a team can see where its plan fails.

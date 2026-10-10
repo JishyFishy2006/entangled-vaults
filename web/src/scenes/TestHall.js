@@ -44,10 +44,14 @@ function vaultLayout(vaults) {
 }
 
 export class TestHall extends Phaser.Scene {
-  constructor() { super('TestHall'); }
+  // The game's HallOfEchoes scene subclasses this with dev = false (no cheats, real flow).
+  constructor(key = 'TestHall') {
+    super(key);
+    this.dev = key === 'TestHall';
+  }
 
   init(data) {
-    this.room = ROOMS.find(r => r.id === data?.room) ?? ROOMS[1];
+    this.room = ROOMS.find(r => r.id === data?.room) ?? ROOMS[this.dev ? 1 : 0];
   }
 
   create() {
@@ -65,9 +69,11 @@ export class TestHall extends Phaser.Scene {
     block(BRIDGE.x1, BRIDGE.y, BRIDGE.x2, 16, DB.stone);
     if (room.vaults > 8) block(VAULT_AREA.x1, SHELF_Y, VAULT_AREA.x2, 16, DB.stone);
 
-    label(this, W / 2, 12, `ROOM ${room.id} - ${room.vaults} VAULTS${room.lampsOn ? '' : ' - DARK'}`, 8, COLORS.gold);
+    label(this, W / 2, 12, `${this.dev ? '' : 'THE HALL OF ECHOES - '}ROOM ${room.id} - ${room.vaults} VAULTS${room.lampsOn ? '' : ' - DARK'}`, 8, COLORS.gold);
     this.status = label(this, W / 2, 30, 'Fireboy: pull the lever to begin.', 8, COLORS.text);
-    label(this, W / 2, H - 8, 'FIRE: ADW + S use | WATER: arrows + DOWN use | ` debug 1-3 room R reset', 8, COLORS.dim);
+    label(this, W / 2, H - 8, this.dev
+      ? 'FIRE: ADW + S use | WATER: arrows + DOWN use | ` debug 1-3 room R reset'
+      : 'FIREBOY: A D W move, S use   WATERGIRL: arrows move, DOWN opens', 8, COLORS.dim);
 
     // The room's pieces. Every event goes through the hall.
     const pools = { ideal: this.cache.json.get('pool-grover-ideal'), 'ionq-aria-1': this.cache.json.get('pool-grover-ionq-aria-1') };
@@ -104,8 +110,9 @@ export class TestHall extends Phaser.Scene {
     }
     this.physics.add.overlap(this.heroes.fire.rect, this.loop.hazard, () => this.fireInWater());
 
-    // Debug overlay and dev keys.
+    // Debug overlay and dev keys (gray-box hall only: the overlay shows the key).
     this.debug = label(this, 6, 44, '', 8, COLORS.gold, 0, 0).setAlign('left').setVisible(false).setDepth(10);
+    if (!this.dev) { this.refresh(); return; }
     this.input.keyboard.on('keydown-BACKTICK', () => this.debug.setVisible(!this.debug.visible));
     this.input.keyboard.on('keydown-L', () => {
       this.hall.lampsOn = !this.hall.lampsOn;
@@ -160,10 +167,15 @@ export class TestHall extends Phaser.Scene {
     if (event === 'spread') { this.loop.reset(); this.say(this.hall.lampsOn ? 'The lamps glow evenly. Watergirl: swim laps!' : 'The search begins. Watergirl: swim laps!'); }
     if (event === 'lap') { sfx.pickup(this); this.say(data >= 4 ? 'Lap 4. The loop gate closes.' : `Lap ${data}.`); }
     if (event === 'read') { sfx.ready(this); this.say(`Vault ${data + 1} unseals! Open it.`, COLORS.gold); }
-    if (event === 'cleared') { sfx.open(this); this.say(`The key! Room ${this.room.id} cleared. (R for a fresh room)`, COLORS.good); }
+    if (event === 'cleared') { sfx.open(this); this.onCleared(); }
     if (event === 'lava') this.flood(data);
     if (this.mural && this.hall.failedReads >= MURAL_AFTER_FAILED_READS) this.mural.show();
     this.refresh();
+  }
+
+  // What happens when the key is found. The game's hall moves on to the next room.
+  onCleared() {
+    this.say(`The key! Room ${this.room.id} cleared. (R for a fresh room)`, COLORS.good);
   }
 
   refresh() {

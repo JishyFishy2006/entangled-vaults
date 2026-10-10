@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { Boot } from './scenes/Boot.js';
-import { Title } from './scenes/Title.js';
+import { LevelSelect } from './scenes/LevelSelect.js';
+import { HallOfEchoes } from './scenes/HallOfEchoes.js';
 import { PlanningHall } from './scenes/PlanningHall.js';
 import { Vaults } from './scenes/Vaults.js';
 import { Run } from './scenes/Run.js';
@@ -29,7 +30,7 @@ loadFont().then(() => {
     backgroundColor: COLORS.bg,
     scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
     physics: { default: 'arcade', arcade: { gravity: { x: 0, y: 820 } } },
-    scene: [Boot, Title, PlanningHall, Vaults, Run, Verdict, Pitch, TestHall],
+    scene: [Boot, LevelSelect, PlanningHall, Vaults, Run, Verdict, Pitch, HallOfEchoes, TestHall],
   });
 
   // Dev builds only: handle for testing from the browser console.

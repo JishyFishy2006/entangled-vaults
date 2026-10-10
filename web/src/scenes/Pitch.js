@@ -31,7 +31,7 @@ export class Pitch extends Phaser.Scene {
     this.input.keyboard.on('keydown-RIGHT', () => this.show(this.index + 1));
     this.input.keyboard.on('keydown-SPACE', () => this.show(this.index + 1));
     this.input.keyboard.on('keydown-LEFT', () => this.show(Math.max(0, this.index - 1)));
-    this.input.keyboard.on('keydown-ESC', () => this.scene.start('PlanningHall'));
+    this.input.keyboard.on('keydown-ESC', () => this.scene.start('LevelSelect'));
     this.show(0);
   }
 
@@ -55,7 +55,7 @@ export class Pitch extends Phaser.Scene {
   }
 
   show(i) {
-    if (i >= this.slides.length) { this.scene.start('PlanningHall'); return; }
+    if (i >= this.slides.length) { this.scene.start('LevelSelect'); return; }
     this.index = i;
     this.layer.removeAll(true);
     this.slides[i].call(this);
@@ -197,6 +197,6 @@ export class Pitch extends Phaser.Scene {
     this.layer.add([red, blue]);
     this.text(W / 2, 246, 'THANKS FOR PLAYING!', 16, COLORS.gold);
     this.text(W / 2, 278, 'Art: chierit (heroes), DragonDePlatino & DawnBringer (DawnLike), CC BY 4.0', 8, COLORS.dim);
-    this.text(W / 2, 304, 'SPACE to play again', 8);
+    this.text(W / 2, 304, 'SPACE: back to the level select', 8);
   }
 }

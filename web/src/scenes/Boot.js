@@ -51,6 +51,6 @@ export class Boot extends Phaser.Scene {
     // Dev shortcut until the Level select exists: /#testhall (room 2), /#testhall1, /#testhall3.
     const hall = window.location.hash.match(/^#testhall([123])?$/);
     if (hall) this.scene.start('TestHall', { room: Number(hall[1] ?? 2) });
-    else this.scene.start('Title');
+    else this.scene.start('LevelSelect');
   }
 }
