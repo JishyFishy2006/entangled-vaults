@@ -6,6 +6,7 @@ import { Vaults } from './scenes/Vaults.js';
 import { Run } from './scenes/Run.js';
 import { Verdict } from './scenes/Verdict.js';
 import { Pitch } from './scenes/Pitch.js';
+import { TestHall } from './scenes/TestHall.js';
 import { COLORS, FONT, H, W } from './scenes/style.js';
 
 // The pixel font must be loaded before Phaser draws any text with it.
@@ -28,7 +29,7 @@ loadFont().then(() => {
     backgroundColor: COLORS.bg,
     scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
     physics: { default: 'arcade', arcade: { gravity: { x: 0, y: 820 } } },
-    scene: [Boot, Title, PlanningHall, Vaults, Run, Verdict, Pitch],
+    scene: [Boot, Title, PlanningHall, Vaults, Run, Verdict, Pitch, TestHall],
   });
 
   // Dev builds only: handle for testing from the browser console.

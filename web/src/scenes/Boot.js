@@ -15,6 +15,8 @@ export class Boot extends Phaser.Scene {
 
     this.load.json('pool-ideal', 'pools/ideal.json');
     this.load.json('pool-ionq-aria-1', 'pools/ionq-aria-1.json');
+    this.load.json('pool-grover-ideal', 'pools/grover-ideal.json');
+    this.load.json('pool-grover-ionq-aria-1', 'pools/grover-ionq-aria-1.json');
     this.load.json('heroes', 'assets/heroes.json');
     this.load.json('tilemap', 'assets/tiles.json');
     this.load.spritesheet('tiles', 'assets/tiles.png', { frameWidth: 16, frameHeight: 16 });
@@ -46,6 +48,7 @@ export class Boot extends Phaser.Scene {
     ctx.fillRect(0, 0, 64, 64);
     glow.refresh();
 
-    this.scene.start('Title');
+    // Dev shortcut until the Level select exists: /#testhall opens the gray-box hall.
+    this.scene.start(window.location.hash === '#testhall' ? 'TestHall' : 'Title');
   }
 }
