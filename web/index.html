@@ -3,39 +3,14 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Entangled Vaults — prototype</title>
+    <title>Entangled Vaults</title>
     <style>
-      body { font-family: system-ui, sans-serif; max-width: 640px; margin: 2rem auto; padding: 0 1rem; }
-      fieldset { margin-bottom: 1rem; }
-      label { margin-right: 1rem; }
-      table { border-collapse: collapse; margin-top: .5rem; }
-      td, th { padding: .2rem .8rem; text-align: left; }
-      #verdict { font-size: 1.6rem; font-weight: bold; }
-      .pass { color: #1a7f37; }
-      .fail { color: #c62828; }
-      .error { color: #c62828; }
+      html, body { margin: 0; height: 100%; background: #1d1f27; overflow: hidden; }
+      #game { width: 100%; height: 100%; }
     </style>
   </head>
   <body>
-    <h1>Entangled Vaults — Level 1 prototype</h1>
-
-    <label>Mode
-      <select id="mode">
-        <option value="plain">plain gems</option>
-        <option value="ideal" selected>entangled (ideal)</option>
-        <option value="ionq-aria-1">entangled (IonQ Aria 1, noisy)</option>
-      </select>
-    </label>
-
-    <fieldset id="fire"><legend>Fireboy</legend></fieldset>
-    <fieldset id="water"><legend>Watergirl</legend></fieldset>
-
-    <button id="run">Run 200 rounds</button>
-    <button id="run100">Run 100 times</button>
-
-    <p id="verdict"></p>
-    <div id="details"></div>
-
-    <script type="module" src="/src/prototype.js"></script>
+    <div id="game"></div>
+    <script type="module" src="/src/main.js"></script>
   </body>
 </html>
