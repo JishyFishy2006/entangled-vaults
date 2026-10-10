@@ -1,7 +1,10 @@
 // The contract between the quantum side and the game side.
 // This is the ONLY place bitstrings are decoded.
 
-// Wins needed out of a 200-round run to open the vault. Phase 3 may lower this to 155.
+// Wins needed out of a 200-round run to open the vault.
+// Set in Phase 3 from the measured win rates of the winning plan (binomial odds of passing):
+//   best classical 0.750 -> 5.8%   IonQ Aria 1 pool 0.847 -> 97.1%   ideal theory 0.854 -> 98.5%
+// 155 would let plain gems pass 23% of the time, so the bar stays at 160.
 export const PASS_BAR = 160;
 
 // Counts keys read c1 c0: the RIGHT char is Fireboy (qubit 0), the LEFT is Watergirl (qubit 1).

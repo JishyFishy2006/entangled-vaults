@@ -7,12 +7,20 @@ from qiskit_aer import AerSimulator
 
 from check_pool import SIGN_PAIRS, fire_red_shares, load_pool, plan_win_rates
 
-IDEAL = Path(__file__).resolve().parent.parent / "web" / "public" / "pools" / "ideal.json"
+POOLS_DIR = Path(__file__).resolve().parent.parent / "web" / "public" / "pools"
+IDEAL = POOLS_DIR / "ideal.json"
+# Pools checked for win rate and no signalling; the IonQ one only once it has been generated.
+POOL_FILES = [p for p in (IDEAL, POOLS_DIR / "ionq-aria-1.json") if p.exists()]
 
 
 @pytest.fixture(scope="module")
 def ideal():
     return load_pool(IDEAL)
+
+
+@pytest.fixture(scope="module", params=POOL_FILES, ids=lambda p: p.stem)
+def pool(request):
+    return load_pool(request.param)
 
 
 def test_bit_order():
@@ -31,8 +39,8 @@ def test_ideal_pool_shape(ideal):
     assert all(sum(c.values()) == 1000 for c in ideal["pools"].values())
 
 
-def test_quantum_win_rate(ideal):
-    rates = plan_win_rates(ideal)
+def test_quantum_win_rate(pool):
+    rates = plan_win_rates(pool)
     avg = sum(rates.values()) / len(rates)
     assert 0.83 <= avg <= 0.87
 
@@ -47,6 +55,6 @@ def test_classical_cap():
     assert best == 0.75
 
 
-def test_no_signalling(ideal):
-    for key, share in fire_red_shares(ideal).items():
+def test_no_signalling(pool):
+    for key, share in fire_red_shares(pool).items():
         assert 0.45 <= share <= 0.55, f"{key}: Fireboy red share {share:.3f}"
