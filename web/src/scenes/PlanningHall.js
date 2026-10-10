@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { hintsFor, modeOf, planOf, progress } from '../progress.js';
+import { POOL_LABELS, hintsFor, modeOf, planOf, progress } from '../progress.js';
 import { COLORS, GEM, PLAYERS, W, font } from './style.js';
 
 const DIAL_Y = 300;
@@ -18,7 +18,7 @@ export class PlanningHall extends Phaser.Scene {
     this.add.text(W / 2, 28, 'The Planning Hall', font(30)).setOrigin(0.5);
     this.add.text(W / 2, 66, this.plain
       ? 'Plain gems: choose the color your gem shows for each sign.'
-      : 'Entangled gems: each dial turns your lens in 45° steps.', font(18, COLORS.dim)).setOrigin(0.5);
+      : `Entangled gems · ${POOL_LABELS[progress.poolMode]} · each dial turns your lens in 45° steps.`, font(18, COLORS.dim)).setOrigin(0.5);
 
     this.g = this.add.graphics();
     this.labels = {};

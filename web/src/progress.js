@@ -21,6 +21,13 @@ export function createProgress() {
 // The one progress object the scenes share.
 export const progress = createProgress();
 
+export const POOL_LABELS = { ideal: 'ideal simulator', 'ionq-aria-1': 'IonQ Aria 1 (noisy)' };
+
+export function togglePoolMode(p) {
+  p.poolMode = p.poolMode === 'ideal' ? 'ionq-aria-1' : 'ideal';
+  return p.poolMode;
+}
+
 export const modeOf = p => (p.entangled ? p.poolMode : 'plain');
 export const planOf = p => (p.entangled ? p.dialPlan : p.plainPlan);
 

@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
-import { hintsFor, progress, recordRun } from '../progress.js';
+import { POOL_LABELS, hintsFor, progress, recordRun, togglePoolMode } from '../progress.js';
 import { PASS_BAR } from '../quantum.js';
+import { sfx } from '../sfx.js';
 import { COLORS, W, font } from './style.js';
 
 export class Verdict extends Phaser.Scene {
@@ -18,6 +19,7 @@ export class Verdict extends Phaser.Scene {
     // Placeholder vault door: slides up when it opens.
     const door = this.add.rectangle(W / 2, 150, 200, 180, passed ? 0x8d6e63 : 0x5d4037).setStrokeStyle(4, COLORS.select);
     if (passed) this.tweens.add({ targets: door, y: -100, duration: 1200, ease: 'Cubic.easeIn', delay: 300 });
+    (passed ? sfx.open : sfx.shut)(this);
 
     this.add.text(W / 2, 285, passed ? 'VAULT OPEN' : 'The vault stays shut', font(38, passed ? '#66bb6a' : '#ef5350')).setOrigin(0.5);
     this.add.text(W / 2, 330, `${wins} / ${rounds} wins (${pct}%)  ·  ${PASS_BAR} needed`, font(20)).setOrigin(0.5);
@@ -38,10 +40,18 @@ export class Verdict extends Phaser.Scene {
 
     const hints = hintsFor(progress);
     if (!passed && !unlocked && hints.length) {
-      this.add.text(W / 2, 455, `Hint: ${hints.join('  ')}`, font(16, '#ffd54f')).setOrigin(0.5);
+      this.add.text(W / 2, 445, `Hint: ${hints.join('  ')}`, font(16, '#ffd54f')).setOrigin(0.5);
     }
 
-    this.add.text(W / 2, 505, passed ? 'Press SPACE to play again' : 'Press SPACE to return to the Planning Hall', font(16)).setOrigin(0.5);
+    // Choose which pool the entangled gems draw from next time.
+    if (progress.entangled) {
+      const poolText = this.add.text(W / 2, 480, '', font(15, COLORS.dim)).setOrigin(0.5);
+      const showPool = () => poolText.setText(`Entangled gems: ${POOL_LABELS[progress.poolMode]}  ·  press T to switch`);
+      showPool();
+      this.input.keyboard.on('keydown-T', () => { togglePoolMode(progress); showPool(); });
+    }
+
+    this.add.text(W / 2, 512, passed ? 'Press SPACE to play again' : 'Press SPACE to return to the Planning Hall', font(16)).setOrigin(0.5);
     this.input.keyboard.once('keydown-SPACE', () => this.scene.start('PlanningHall'));
   }
 }

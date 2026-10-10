@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createProgress, hintsFor, modeOf, planOf, recordRun } from './progress.js';
+import { createProgress, hintsFor, modeOf, planOf, recordRun, togglePoolMode } from './progress.js';
 import { PASS_BAR } from './quantum.js';
 
 describe('progress', () => {
@@ -37,5 +37,15 @@ describe('progress', () => {
     recordRun(p, 150);
     recordRun(p, 150);
     expect(hintsFor(p)).toHaveLength(2);
+  });
+
+  it('switches the entangled pool between ideal and IonQ, without affecting plain mode', () => {
+    const p = createProgress();
+    togglePoolMode(p);
+    expect(modeOf(p)).toBe('plain');
+    recordRun(p, 150);
+    expect(modeOf(p)).toBe('ionq-aria-1');
+    togglePoolMode(p);
+    expect(modeOf(p)).toBe('ideal');
   });
 });
