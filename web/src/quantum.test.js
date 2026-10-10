@@ -1,12 +1,15 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import {
-  WINNING_PLAN, bestPlainRate, decodeShot, drawShot, fireRedShares, pairBreakdown, planWinRates, runLevel,
+  WINNING_PLAN, bestPlainRate, decodeShot, drawShot, fireRedShares, groverRead, lampLevels, pairBreakdown, planWinRates, runLevel,
 } from './quantum.js';
 import { passChance } from './stats.js';
 
 const ideal = JSON.parse(
   readFileSync(new URL('../public/pools/ideal.json', import.meta.url), 'utf8'),
+);
+const grover = JSON.parse(
+  readFileSync(new URL('../public/pools/grover-ideal.json', import.meta.url), 'utf8'),
 );
 
 describe('bit order', () => {
@@ -85,5 +88,48 @@ describe('pairBreakdown', () => {
     expect(ba / 10).toBeLessThan(0.3);
     expect(bb / 10).toBeLessThan(0.3);
     expect(aa / 10).toBeGreaterThan(0.75);
+  });
+});
+
+describe('groverRead', () => {
+  it('relabels with XOR: key 5 at the 8-vault peak reads vault 5 about 95% of the time', () => {
+    let hits = 0;
+    for (let i = 0; i < 10000; i++) if (groverRead(grover, 8, 2, 5) === 5) hits++;
+    expect(hits / 10000).toBeGreaterThanOrEqual(0.92);
+    expect(hits / 10000).toBeLessThanOrEqual(0.97);
+  });
+  it('always returns a vault in range', () => {
+    for (const v of [4, 8, 16]) {
+      for (let k = 0; k <= 4; k++) {
+        const r = groverRead(grover, v, k, v - 1);
+        expect(r).toBeGreaterThanOrEqual(0);
+        expect(r).toBeLessThan(v);
+      }
+    }
+  });
+  it("reads '001' as vault 1 (qubit 0 is the rightmost character)", () => {
+    const fake = { shots: 1, pools: { v8_k0: { '001': 1 } } };
+    expect(groverRead(fake, 8, 0, 0)).toBe(1);
+    expect(groverRead(fake, 8, 0, 5)).toBe(1 ^ 5);
+  });
+});
+
+describe('lampLevels', () => {
+  it('sums to 1 for every room and lap count', () => {
+    for (const v of [4, 8, 16]) {
+      for (let k = 0; k <= 4; k++) {
+        const sum = lampLevels(v, k, 3).reduce((a, b) => a + b, 0);
+        expect(sum).toBeCloseTo(1, 10);
+      }
+    }
+  });
+  it("puts the formula's value on the key's lamp and peaks then fades in the 8-vault room", () => {
+    const key = 6;
+    const peak = [0, 1, 2, 3, 4].map(k => lampLevels(8, k, key)[key]);
+    expect(peak[0]).toBeCloseTo(1 / 8, 10);
+    expect(peak[2]).toBeCloseTo(0.945, 3);
+    expect(peak[3]).toBeLessThan(peak[2]);
+    expect(peak[4]).toBeCloseTo(0.012, 3);
+    expect(lampLevels(16, 3, key)[key]).toBeCloseTo(0.961, 3);
   });
 });

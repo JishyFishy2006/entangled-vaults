@@ -58,3 +58,71 @@ def test_classical_cap():
 def test_no_signalling(pool):
     for key, share in fire_red_shares(pool).items():
         assert 0.45 <= share <= 0.55, f"{key}: Fireboy red share {share:.3f}"
+
+
+# ---- Hall of Echoes (Grover's search) --------------------------------------
+import math
+
+GROVER = POOLS_DIR / "grover-ideal.json"
+
+
+@pytest.fixture(scope="module")
+def grover():
+    return load_pool(GROVER)
+
+
+def vault0_share(pool, vaults, laps):
+    """Share of shots that read vault 0 (the all-zeros key)."""
+    n = vaults.bit_length() - 1
+    counts = pool["pools"][f"v{vaults}_k{laps}"]
+    return counts.get("0" * n, 0) / pool["shots"]
+
+
+def formula(vaults, laps):
+    theta = math.asin(1 / math.sqrt(vaults))
+    return math.sin((2 * laps + 1) * theta) ** 2
+
+
+def test_grover_pool_shape(grover):
+    assert grover["mode"] == "ideal"
+    assert grover["shots"] == 1000
+    assert set(grover["pools"]) == {f"v{v}_k{k}" for v in (4, 8, 16) for k in range(5)}
+    assert all(sum(c.values()) == 1000 for c in grover["pools"].values())
+
+
+def test_grover_room1_peak(grover):
+    assert vault0_share(grover, 4, 1) >= 0.99
+
+
+def test_grover_room2_peak(grover):
+    assert 0.92 <= vault0_share(grover, 8, 2) <= 0.97
+
+
+def test_grover_room2_overshoot(grover):
+    assert vault0_share(grover, 8, 3) < 0.40
+    assert vault0_share(grover, 8, 4) < 0.05
+
+
+def test_grover_room3_peak(grover):
+    assert vault0_share(grover, 16, 3) >= 0.93
+
+
+def test_grover_zero_laps_is_a_blind_guess(grover):
+    for v in (4, 8, 16):
+        assert abs(vault0_share(grover, v, 0) - 1 / v) <= 0.05, f"v{v}_k0"
+
+
+def test_grover_pool_matches_formula(grover):
+    for v in (4, 8, 16):
+        for k in range(5):
+            assert abs(vault0_share(grover, v, k) - formula(v, k)) <= 0.04, f"v{v}_k{k}"
+
+
+def test_grover_bit_order():
+    # Only qubit 0 flipped in a 3-qubit circuit: key '001', which parseInt reads as vault 1.
+    qc = QuantumCircuit(3, 3)
+    qc.x(0)
+    qc.measure(range(3), range(3))
+    counts = AerSimulator().run(qc, shots=100).result().get_counts()
+    assert counts == {"001": 100}
+    assert int("001", 2) == 1

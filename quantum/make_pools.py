@@ -12,8 +12,8 @@ POOLS_DIR = Path(__file__).resolve().parent.parent / "web" / "public" / "pools"
 KEYS = [(f, w) for f in range(8) for w in range(8)]
 
 
-def write_pool(mode, pools):
-    out = POOLS_DIR / f"{mode}.json"
+def write_pool(mode, pools, prefix=""):
+    out = POOLS_DIR / f"{prefix}{mode}.json"
     out.parent.mkdir(parents=True, exist_ok=True)
     with open(out, "w") as fh:
         json.dump({"mode": mode, "shots": SHOTS, "pools": pools}, fh, indent=1)

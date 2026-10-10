@@ -125,3 +125,23 @@ export function pairBreakdown(log) {
   }
   return out;
 }
+
+// ---- Hall of Echoes (Grover's search) ----
+// The pools always mark vault 0; XOR with the key moves the answer to the key's vault.
+// Counts keys put qubit 0 on the right, so parseInt(bits, 2) is the vault number.
+
+const groverKey = (vaults, laps) => `v${vaults}_k${laps}`;
+
+// One read: draw a shot for this room and lap count, decode it, relabel to the real key.
+export function groverRead(pool, vaults, laps, key) {
+  const bits = drawShot(pool.pools[groverKey(vaults, laps)], pool.shots);
+  return parseInt(bits, 2) ^ key;
+}
+
+// Lamp brightness for each vault, from the formula (never from the pool):
+// the key's lamp gets P = sin^2((2k+1)θ) with sin θ = 1/√N, the rest share 1 − P equally.
+export function lampLevels(vaults, laps, key) {
+  const theta = Math.asin(1 / Math.sqrt(vaults));
+  const p = Math.sin((2 * laps + 1) * theta) ** 2;
+  return Array.from({ length: vaults }, (_, v) => (v === key ? p : (1 - p) / (vaults - 1)));
+}
