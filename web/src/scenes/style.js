@@ -43,8 +43,10 @@ export const PLAYERS = {
 export const FONT = 'SDS';
 
 // Pixel text: sizes should be multiples of 8 so the font stays crisp.
+// Phaser measures this font with almost no descent, which clips the tails of g, y, q
+// and p on the last line; the bottom padding makes room for them.
 export function font(size = 8, color = COLORS.text) {
-  return { fontFamily: FONT, fontSize: `${size}px`, color, resolution: 1 };
+  return { fontFamily: FONT, fontSize: `${size}px`, color, resolution: 1, padding: { bottom: Math.ceil(size / 4) } };
 }
 
 // Text with a 1px dark drop shadow, the usual way to keep pixel text readable over art.
