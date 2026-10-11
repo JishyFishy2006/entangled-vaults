@@ -194,9 +194,11 @@ uv run ionq_pool.py            # Level 1 on IonQ simulator, Aria 1 noise model
 uv run ionq_pool_grover.py     # Level 2
 ```
 
-### Run the circuits on Qollab
+### Run it on Qollab
 
-`quantum/qollab_pool.py` and `quantum/qollab_pool_grover.py` are self-contained. Paste either one into a Qollab project with **IonQ Aria 1 (25q)** (or a simulator) selected. Each uses Qollab's `backend`, imports nothing local, and prints one JSON line to save as the matching file in `web/public/pools/`.
+`qollab/main.py` is the Qollab project. It runs the game's circuits live on whatever backend you pick, as one batched job (so it works on IonQ too), and prints the CHSH win rates and the Grover peaks next to theory. `qollab/PROJECT_PAGE.md` is the project page's write-up.
+
+To regenerate a whole pool on Qollab, `quantum/qollab_pool.py` and `quantum/qollab_pool_grover.py` are self-contained. Paste either one into a Qollab project with **IonQ Aria 1 (25q)** (or a simulator) selected. Each uses Qollab's `backend`, imports nothing local, and prints one JSON line to save as the matching file in `web/public/pools/`.
 
 ---
 
@@ -233,6 +235,7 @@ Elsewhere: **P** opens the physics card, **Enter** closes a card, **←/→ + En
 ## Repository layout
 
 ```
+qollab/                 the Qollab project: main.py (runs live) and the project page
 quantum/                Qiskit circuits and pool generation (Python, uv)
   circuit.py              Level 1 Bell-pair circuit
   circuits_grover.py      Level 2 Grover circuit
