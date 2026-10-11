@@ -5,7 +5,8 @@ import { PASS_BAR } from '../quantum.js';
 import { markCleared } from '../clears.js';
 import { Menu } from '../menu.js';
 import { sfx } from '../sfx.js';
-import { isTeaching, recap, teachInit } from '../teach.js';
+import { CONCEPTS } from '../concepts.js';
+import { conceptCard, isTeaching, recap, teachInit } from '../teach.js';
 import { COLORS, DB, W, label } from './style.js';
 
 const FLOOR = 240;
@@ -105,7 +106,11 @@ export class Verdict extends Phaser.Scene {
     }
 
     // Once the door has moved: the run in real terms.
-    this.time.delayedCall(passed ? 2400 : 1200, () => recap(this, this.recapContent(mode, passed, wins / rounds)));
+    // After the first (classical) attempt, the recap reveals the 75% wall and the CHSH card names the game.
+    this.time.delayedCall(passed ? 2400 : 1200, () => {
+      recap(this, this.recapContent(mode, passed, wins / rounds));
+      if (mode === 'plain') conceptCard(this, 'chsh', CONCEPTS.chsh);
+    });
 
     // An entangled pass clears Level 1 and offers the next level; otherwise plan again.
     const go = (scene, data) => {

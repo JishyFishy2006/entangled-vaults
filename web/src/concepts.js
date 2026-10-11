@@ -9,8 +9,8 @@ export const CONCEPTS = {
       'Each round, each vault shows a random sign, A or B: the INPUTS.',
       'You win if the gems show the SAME color, unless both signs are B:',
       'then they must DIFFER. You can\'t talk once the round starts.',
-      'Plain gems are classical: each color is fixed in advance. No such',
-      'plan wins more than 75% of rounds. That limit is Bell\'s inequality.',
+      'Plain gems are classical: each color is fixed in advance.',
+      'Can you find a plan that wins every round?',
     ],
   },
   entanglement: {
@@ -24,14 +24,16 @@ export const CONCEPTS = {
       'No message passes, yet they beat 75%.',
     ],
   },
+  // Shown after the first (classical) attempt, once players have hit the wall themselves.
   chsh: {
     title: 'THE CHSH GAME',
-    sub: 'a Bell test, 200 rounds',
+    sub: 'what you just played: a Bell test',
     lines: [
-      'Each round draws random inputs (the signs) and measures both',
-      'gems with the lenses your plan chose for those signs.',
-      'Classical limit: 75%. Quantum limit: 85.4% (Tsirelson\'s bound).',
-      'Does the green line climb past 75%?',
+      'Two players, random inputs (the signs), no talking: this is the',
+      'CHSH game, the Bell test behind the 2022 Nobel Prize in Physics.',
+      'Any classical plan loses at least one sign pair in four, so it',
+      'tops out at 75%. Entangled qubits can reach 85.4%',
+      '(Tsirelson\'s bound). Next: try it with entangled gems.',
     ],
   },
 

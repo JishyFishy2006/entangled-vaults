@@ -2,9 +2,8 @@ import Phaser from 'phaser';
 import { brickBlock, gem, heroSprite, keyHint, panel, templeBackground } from '../art.js';
 import { POOL_LABELS, modeOf, planOf, progress } from '../progress.js';
 import { PASS_BAR, pairBreakdown, runLevel } from '../quantum.js';
-import { CONCEPTS } from '../concepts.js';
 import { isMuted, sfx, toggleMute } from '../sfx.js';
-import { conceptCard, teachInit } from '../teach.js';
+import { teachInit } from '../teach.js';
 import { COLORS, DB, GEM, PLAYERS, W, hex, label } from './style.js';
 
 const ROUND_MS = 100;            // 200 rounds ~ 20 s
@@ -71,7 +70,7 @@ export class Run extends Phaser.Scene {
     guides.fillStyle(DB.black, 0.6).fillRect(CHART.x, CHART.y, CHART.w, CHART.h);
     const passRate = PASS_BAR / this.result.rounds;
     for (const [rate, color, text, below] of [
-      [CLASSICAL, DB.slate, '75% classical limit (Bell)', true],
+      [CLASSICAL, DB.slate, mode === 'plain' ? '75%' : '75% classical limit (Bell)', true],   // explained after the first try
       [passRate, DB.yellow, `${Math.round(passRate * 100)}% to open`, false],
     ]) {
       for (let x = CHART.x; x < CHART.x + CHART.w; x += 6) guides.fillStyle(color).fillRect(x, chartY(rate), 4, 1);
@@ -91,7 +90,7 @@ export class Run extends Phaser.Scene {
     marks.fillStyle(DB.slate).fillRect(classicalX, BAR.y - 3, 1, BAR.h + 6);
     marks.fillStyle(DB.yellow).fillRect(passX - 1, BAR.y - 4, 2, BAR.h + 8);
     label(this, passX + 4, BAR.y - 6, `${PASS_BAR} to open`, 8, COLORS.gold, 0, 0.5);
-    label(this, classicalX - 4, BAR.y + 26, `${this.result.rounds * CLASSICAL} = classical max`, 8, COLORS.dim, 1, 0.5);
+    label(this, classicalX - 4, BAR.y + 26, `${this.result.rounds * CLASSICAL}${mode === 'plain' ? '' : ' = classical max'}`, 8, COLORS.dim, 1, 0.5);
     label(this, 24, 336, mode === 'plain' ? 'Plain gems' : `Entangled - ${POOL_LABELS[mode]}`, 8, COLORS.dim, 0, 0.5);
     this.strip = this.add.graphics();
 
@@ -100,9 +99,7 @@ export class Run extends Phaser.Scene {
     this.input.keyboard.on('keydown-M', () => this.showMute(toggleMute()));
     this.updateScore();
 
-    // The rounds start once the CHSH card (first run only) is closed.
-    const start = () => this.time.addEvent({ delay: ROUND_MS, repeat: this.result.rounds - 1, callback: () => this.step(), startAt: -600 });
-    this.time.delayedCall(400, () => conceptCard(this, 'chsh', CONCEPTS.chsh, start));
+    this.time.addEvent({ delay: ROUND_MS, repeat: this.result.rounds - 1, callback: () => this.step(), startAt: -600 });
   }
 
   step() {

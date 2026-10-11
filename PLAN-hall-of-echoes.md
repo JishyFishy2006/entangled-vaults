@@ -225,3 +225,4 @@ Both levels use `web/src/teach.js` (cards, predictions, recaps, tags), and `web/
   - on entering Room 3: how many laps;
   - Level 1, before each run: under / about / over 75%.
 - **Recap:** after every room (Level 2) and on the Verdict (Level 1), built from what the players did.
+- **Level 1 order:** the first (plain) attempt comes before any mention of the 75% limit. The Planning Hall card only asks "Can you find a plan that wins every round?", and the run's chart line just reads "75%". The Verdict recap then reveals the classical limit, followed by the CHSH card.
