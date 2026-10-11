@@ -2,6 +2,8 @@
 
 **A two-player co-op platformer that teaches entanglement and Grover's search by making players *use* them.**
 
+**▶ Play it now: https://jishyfishy2006.github.io/entangled-vaults/** (two players, one keyboard; Chrome, Edge or Firefox)
+
 Fireboy and Watergirl share one keyboard and two quantum puzzles. In Level 1, the only way to open the vault is to beat a limit that no classical strategy can beat: the CHSH game, the Bell test behind the 2022 Nobel Prize in Physics. In Level 2, they run Grover's search by hand. A lever is the Hadamard step, a fountain is the oracle, and a mirror is the diffuser. They watch the odds rotate toward the key, then past it.
 
 Every result in the game is a real measurement shot from a Qiskit circuit, run on an ideal simulator and on IonQ's Aria 1 noise model.
