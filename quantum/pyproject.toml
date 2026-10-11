@@ -1,6 +1,7 @@
 [project]
 name = "quantum"
 version = "0.1.0"
+license = "MIT"
 requires-python = ">=3.15"
 dependencies = [
     "pytest>=9.1.1",
