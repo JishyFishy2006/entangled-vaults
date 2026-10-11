@@ -111,6 +111,11 @@ export class TestHall extends Phaser.Scene {
     this.mirror = new Mirror(this, 348, LEDGE.y);
     this.dial = new LapDial(this, 56, 168);
     this.mural = room.mural ? new Mural(this, 4, 43) : null;
+    // The real names: the lever's engraved in the floor (the dais, fountain, mirror and
+    // dial carry their own), and one over the lamps.
+    label(this, 60, FLOOR + 18, 'HADAMARD', 8, COLORS.dim);
+    const lampsY = (room.vaults > 8 ? SHELF_Y : FLOOR) - 82;
+    label(this, (VAULT_AREA.x1 + VAULT_AREA.x2) / 2, lampsY, room.lampsOn ? 'LAMPS = PROBABILITIES' : 'STILL LAMPS: ODDS HIDDEN', 8, COLORS.dim);
     this.vaults = [];
     this.lamps = [];
     vaultLayout(room.vaults).forEach(({ cx, floorY, w }, i) => {
@@ -173,8 +178,7 @@ export class TestHall extends Phaser.Scene {
         this.say(this.hall.state === 'read' ? 'The echo is spent. Pull the lever to search again.' : 'Nothing to read yet: pull the lever.', COLORS.dim);
         return;
       }
-      this.dais.flash();
-      this.hall.read();
+      this.beforeRead(() => { this.dais.flash(); this.hall.read(); });
     } else if (atFountain || atMirror) {
       if (hero.id !== 'water') { this.say('Only Watergirl can work the fountain and the mirror.', COLORS.dim); return; }
       if (!this.hall.searching) {
@@ -186,8 +190,10 @@ export class TestHall extends Phaser.Scene {
       if (this.revealing) {
         this.say('Wait for the lanterns to choose...', COLORS.dim);
       } else if (vault.state === 'unsealed') {
+        this.lastAction = 'open';
         this.hall.open(vault.index);
       } else if (hero.id === 'fire' && vault.state === 'sealed') {
+        this.lastAction = 'pry';
         if (this.hall.pry(vault.index) === 'denied') this.say('Sealed tight. Only the dais can unseal one here.', COLORS.dim);
       } else if (vault.state === 'sealed') {
         this.say('Sealed. Find the right one first.', COLORS.dim);
@@ -213,6 +219,11 @@ export class TestHall extends Phaser.Scene {
     if (event === 'lava') this.flood(data);
     if (this.mural && this.hall.failedReads >= MURAL_AFTER_FAILED_READS) this.mural.show();
     this.refresh();
+  }
+
+  // The game's hall asks for a prediction first; the gray-box hall just reads.
+  beforeRead(read) {
+    read();
   }
 
   // What happens when the key is found. The game's hall moves on to the next room.
@@ -364,6 +375,7 @@ export class TestHall extends Phaser.Scene {
   }
 
   update() {
+    if (this.teaching) return;   // a teaching card is open (game hall only)
     for (const hero of Object.values(this.heroes)) {
       const { body } = hero.sprite;
       if (hero.frozen) { body.setVelocityX(0); continue; }

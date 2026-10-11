@@ -20,6 +20,7 @@ export class LapDial {
       label(scene, x + (r + 9) * Math.cos(a), y + (r + 9) * Math.sin(a), String(k), 8, COLORS.dim);
     }
     label(scene, x, y + r + 10, 'LAPS', 8, COLORS.gold);
+    label(scene, x, y + r + 20, 'iterations', 8, COLORS.dim);
     this.draw(0);
   }
 

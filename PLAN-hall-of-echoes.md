@@ -208,6 +208,20 @@ Room 3 is under 0.6, so in noisy mode it reads from the ideal pool: `groverPoolM
 - Don't change the circuit, the XOR relabel, the formula or the lap cap of 4.
 - Lamps come from `lampLevels`; reads come from the pool through `groverRead`. Never mix them. One exception: after a read the lamps collapse onto the vault that was read (a measurement leaves only its result), until the lever starts a new search.
 - No quantum vocabulary on screen except the reveal card and the opt-in physics card (`HallPitch`, opened with P, like Level 1's pitch).
+  *Changed Oct 11, 2026 (user request): the game now teaches with the proper terms on screen.* See "Teaching layer" below.
 - If time is short, Room 2 alone (lamps on) is a complete level.
 - Never lock Level 2 behind Level 1; the Level select always offers both.
 - Run tests at the end of each phase, report the numbers, and stop.
+
+## Teaching layer (added Oct 11, 2026)
+
+Both levels use `web/src/teach.js` (cards, predictions, recaps, tags), and `web/src/concepts.js` holds the card text.
+
+- **Concept card:** the real term the first time something is used in a session (superposition, oracle, diffuser, running it backwards, measurement, over-rotation, real hardware, classical search; Level 1: classical strategy, entanglement, the CHSH game). Cards are modal: physics pauses and scene keys are ignored.
+- **Tag:** the term rises over the object every time it is used (HADAMARD, ORACLE, DIFFUSER: ITERATION n, MEASUREMENT).
+- **Labels:** HADAMARD (lever), MEASURE (dais), FOUNTAIN = ORACLE, MIRROR = DIFFUSER, LAPS / iterations, LAMPS = PROBABILITIES (STILL LAMPS: ODDS HIDDEN). Level 1: qubit q0/q1 or "a classical bit", SIGN (input), measured or fixed color, "75% classical limit (Bell)".
+- **Predictions:**
+  - before every measurement: LOW / MEDIUM / HIGH, scored against the key's odds;
+  - on entering Room 3: how many laps;
+  - Level 1, before each run: under / about / over 75%.
+- **Recap:** after every room (Level 2) and on the Verdict (Level 1), built from what the players did.

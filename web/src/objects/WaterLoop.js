@@ -30,7 +30,7 @@ export class WaterLoop {
       tint: [DB.white, DB.cyan], alpha: { start: 1, end: 0 }, blendMode: Phaser.BlendModes.ADD,
     });
     this.markGlow = scene.add.image(sx, floorY - 14, 'glow').setTint(DB.cyan).setBlendMode(Phaser.BlendModes.ADD).setAlpha(0).setScale(1.4);
-    label(scene, sx - 6, floorY + 21, 'FOUNTAIN', 8, COLORS.dim);   // engraved in the floor
+    label(scene, sx - 26, floorY + 21, 'FOUNTAIN = ORACLE', 8, COLORS.dim);   // engraved in the floor
     this.ripples = scene.add.graphics();
     this.rippleList = [];
 

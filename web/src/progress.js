@@ -15,6 +15,7 @@ export function createProgress() {
     poolMode: 'ideal',      // which pool entangled gems draw from: 'ideal' | 'ionq-aria-1'
     entangled: false,       // the first attempt is forced plain; unlocked after it
     entangledFails: 0,
+    prediction: null,       // the team's guess before the last run: 0 under / 1 about / 2 over 75%
   };
 }
 

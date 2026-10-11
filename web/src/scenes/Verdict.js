@@ -5,10 +5,13 @@ import { PASS_BAR } from '../quantum.js';
 import { markCleared } from '../clears.js';
 import { Menu } from '../menu.js';
 import { sfx } from '../sfx.js';
+import { isTeaching, recap, teachInit } from '../teach.js';
 import { COLORS, DB, W, label } from './style.js';
 
 const FLOOR = 240;
 const DOOR = { x: W / 2 - 56, y: 64, w: 112, h: FLOOR - 64 };
+const GUESSES = ['UNDER 75%', 'ABOUT 75%', 'OVER 75%'];
+const bucket = rate => (rate < 0.73 ? 0 : rate <= 0.77 ? 1 : 2);   // matches the prediction's answers
 
 export class Verdict extends Phaser.Scene {
   constructor() { super('Verdict'); }
@@ -18,6 +21,7 @@ export class Verdict extends Phaser.Scene {
   }
 
   create() {
+    teachInit(this);
     const { wins, rounds } = this.run;
     const { mode, passed, unlocked } = recordRun(progress, wins);
     const pct = (wins / rounds * 100).toFixed(1);
@@ -97,8 +101,11 @@ export class Verdict extends Phaser.Scene {
       const poolText = keyHint(this, 48, 336, ['T'], '');
       const showPool = () => poolText.setText(`gems: ${POOL_LABELS[progress.poolMode]}`);
       showPool();
-      this.input.keyboard.on('keydown-T', () => { togglePoolMode(progress); showPool(); sfx.tick(this); });
+      this.input.keyboard.on('keydown-T', () => { if (isTeaching(this)) return; togglePoolMode(progress); showPool(); sfx.tick(this); });
     }
+
+    // Once the door has moved: the run in real terms.
+    this.time.delayedCall(passed ? 2400 : 1200, () => recap(this, this.recapContent(mode, passed, wins / rounds)));
 
     // An entangled pass clears Level 1 and offers the next level; otherwise plan again.
     const go = (scene, data) => {
@@ -118,6 +125,26 @@ export class Verdict extends Phaser.Scene {
         { label: 'Level select', action: () => go('LevelSelect', { level: 1 }) },
       ]);
     }
+  }
+
+  recapContent(mode, passed, rate) {
+    const plain = mode === 'plain';
+    const won = `You won ${Math.round(rate * 100)}%.`;
+    const lines = plain
+      ? ['You played a CLASSICAL strategy: each color fixed in advance.',
+        `${won} No classical plan beats 75% on average:`, "that limit is Bell's inequality."]
+      : ['You played a QUANTUM strategy: an entangled Bell pair,', 'measured at your lens angles.',
+        `${won} Classical limit: 75%. Quantum limit: 85.4%.`];
+    if (plain) lines.push('Next: entangled gems. Your dials become measurement angles.');
+    else if (passed) lines.push('Beating 75% means the colors were not fixed in advance:', 'a BELL VIOLATION (the 2022 Nobel Prize in Physics).');
+    else if (rate > 0.75) lines.push('Past the classical limit, but short of the 80% needed.');
+    else lines.push('No better than classical yet:', 'the lens angles decide how often the gems agree.');
+    const guess = progress.prediction;
+    if (guess !== null) {
+      const right = guess === bucket(rate);
+      lines.push(`You predicted ${GUESSES[guess]}: ${right ? 'right!' : `it was ${GUESSES[bucket(rate)]}.`}`);
+    }
+    return { title: 'RECAP', sub: plain ? 'plain gems' : 'entangled gems', lines };
   }
 
   // How this run went for each sign pair, so a team can see where its plan fails.

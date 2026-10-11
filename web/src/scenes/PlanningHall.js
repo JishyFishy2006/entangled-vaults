@@ -1,7 +1,9 @@
 import Phaser from 'phaser';
 import { brickBlock, drawLens, gem, heroSprite, keyHint, panel, templeBackground } from '../art.js';
 import { POOL_LABELS, hintsFor, modeOf, planOf, progress } from '../progress.js';
+import { CONCEPTS } from '../concepts.js';
 import { sfx } from '../sfx.js';
+import { ask, conceptCard, isTeaching, teachInit } from '../teach.js';
 import { COLORS, DB, PLAYERS, W, hex, label } from './style.js';
 
 const FLOOR = 320;
@@ -17,6 +19,7 @@ export class PlanningHall extends Phaser.Scene {
   constructor() { super('PlanningHall'); }
 
   create() {
+    teachInit(this);
     this.plain = modeOf(progress) === 'plain';
     this.plan = planOf(progress);
     this.selected = { fire: 'A', water: 'A' };
@@ -28,8 +31,8 @@ export class PlanningHall extends Phaser.Scene {
 
     label(this, W / 2, 18, 'THE PLANNING HALL', 16, COLORS.gold);
     label(this, W / 2, 38, this.plain
-      ? 'Plain gems: pick the color your gem shows for each sign.'
-      : `Entangled gems (${POOL_LABELS[progress.poolMode]}): turn your lenses.`, 8, COLORS.dim);
+      ? 'Plain gems (classical): fix the color your gem shows for each sign.'
+      : `Entangled gems (${POOL_LABELS[progress.poolMode]}): set each measurement angle.`, 8, COLORS.dim);
     keyHint(this, 548, 12, ['P'], 'physics');
 
     this.g = this.add.graphics();
@@ -37,10 +40,11 @@ export class PlanningHall extends Phaser.Scene {
     for (const [id, p] of Object.entries(PLAYERS)) {
       const st = STATION[id];
       panel(this, st.x - 132, 56, 264, 168);
-      label(this, st.x, 72, p.name.toUpperCase(), 16, p.text);
+      label(this, st.x, 70, p.name.toUpperCase(), 16, p.text);
+      label(this, st.x, 86, this.plain ? 'a classical bit' : `qubit q${id === 'fire' ? 0 : 1}`, 8, COLORS.dim);
       const ui = this.ui[id] = { gems: {}, values: {} };
       for (const s of ['A', 'B']) {
-        label(this, st.x + SIGN_DX[s], 98, `SIGN ${s}`, 8, COLORS.dim);
+        label(this, st.x + SIGN_DX[s], 102, `SIGN ${s}`, 8, COLORS.dim);
         ui.values[s] = label(this, st.x + SIGN_DX[s], 180, '', 8);
         if (this.plain) ui.gems[s] = gem(this, st.x + SIGN_DX[s], DIAL_Y, 12, 'red');
       }
@@ -56,13 +60,13 @@ export class PlanningHall extends Phaser.Scene {
       keyHint(this, st.hints, 274, arrows ? ['up', 'down'] : [k.selA, k.selB], 'pick sign A / B');
       keyHint(this, st.hints, 292, [arrows ? 'ENTER' : k.ready], 'ready');
 
-      this.input.keyboard.on(`keydown-${k.down}`, () => this.turn(id, -1));
-      this.input.keyboard.on(`keydown-${k.up}`, () => this.turn(id, +1));
-      this.input.keyboard.on(`keydown-${k.selA}`, () => this.select(id, 'A'));
-      this.input.keyboard.on(`keydown-${k.selB}`, () => this.select(id, 'B'));
-      this.input.keyboard.on(`keydown-${k.ready}`, () => this.toggleReady(id));
+      this.onKey(k.down, () => this.turn(id, -1));
+      this.onKey(k.up, () => this.turn(id, +1));
+      this.onKey(k.selA, () => this.select(id, 'A'));
+      this.onKey(k.selB, () => this.select(id, 'B'));
+      this.onKey(k.ready, () => this.toggleReady(id));
     }
-    this.input.keyboard.on('keydown-P', () => this.scene.start('Pitch'));
+    this.onKey('P', () => this.scene.start('Pitch'));
     this.children.bringToTop(this.g);   // dials and selection draw above the panels
 
     const hints = hintsFor(progress);
@@ -71,6 +75,12 @@ export class PlanningHall extends Phaser.Scene {
       label(this, W / 2, 248, hints.at(-1), 8, COLORS.gold).setWordWrapWidth(284);
     }
     this.redraw();
+    conceptCard(this, this.plain ? 'classicalPlan' : 'entanglement', this.plain ? CONCEPTS.classicalPlan : CONCEPTS.entanglement);
+  }
+
+  // Scene keys, ignored while a teaching card is open.
+  onKey(key, fn) {
+    this.input.keyboard.on(`keydown-${key}`, () => { if (!isTeaching(this)) fn(); });
   }
 
   turn(id, step) {
@@ -96,10 +106,17 @@ export class PlanningHall extends Phaser.Scene {
     if (this.ready.fire && this.ready.water) {
       this.input.keyboard.removeAllListeners();
       sfx.ready(this);
-      this.time.delayedCall(700, () => {
+      // Before the run: what will this plan score?
+      this.time.delayedCall(500, () => ask(this, {
+        title: 'PREDICT',
+        sub: this.plain ? 'plain gems, a classical plan' : 'entangled gems, your angles',
+        lines: ['Over 200 rounds, what share will this plan win?'],
+        options: ['UNDER 75%', 'ABOUT 75%', 'OVER 75%'],
+      }, i => {
+        progress.prediction = i;
         this.cameras.main.fadeOut(300, 20, 12, 28);
         this.cameras.main.once('camerafadeoutcomplete', () => this.scene.start('Vaults'));
-      });
+      }));
     }
   }
 

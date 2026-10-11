@@ -2,7 +2,9 @@ import Phaser from 'phaser';
 import { brickBlock, gem, heroSprite, keyHint, panel, templeBackground } from '../art.js';
 import { POOL_LABELS, modeOf, planOf, progress } from '../progress.js';
 import { PASS_BAR, pairBreakdown, runLevel } from '../quantum.js';
+import { CONCEPTS } from '../concepts.js';
 import { isMuted, sfx, toggleMute } from '../sfx.js';
+import { conceptCard, teachInit } from '../teach.js';
 import { COLORS, DB, GEM, PLAYERS, W, hex, label } from './style.js';
 
 const ROUND_MS = 100;            // 200 rounds ~ 20 s
@@ -17,6 +19,7 @@ export class Run extends Phaser.Scene {
   constructor() { super('Run'); }
 
   create() {
+    teachInit(this);
     const mode = modeOf(progress);
     const pool = mode === 'plain' ? null : this.cache.json.get(`pool-${mode}`);
     this.result = runLevel(planOf(progress), pool, mode);
@@ -42,12 +45,14 @@ export class Run extends Phaser.Scene {
       const signGlow = this.add.image(tx, 94, 'glow').setTint(DB.yellow).setBlendMode(Phaser.BlendModes.ADD).setAlpha(0);
       const sign = label(this, tx, 96, '', 32, COLORS.gold);
       label(this, tx, 136, 'SIGN', 8, COLORS.dim);
+      label(this, tx, 146, '(input)', 8, COLORS.dim);
 
       // Pedestal with the gem.
       const gx = cx + dir * 62;
       brickBlock(this, gx - 16, CHAMBER.floor - 16, 2, 1);
       const halo = this.add.image(gx, 112, 'glow').setBlendMode(Phaser.BlendModes.ADD).setAlpha(0).setScale(1.4);
       const g = gem(this, gx, 112, 14, null);
+      label(this, gx, 146, mode === 'plain' ? 'fixed color' : 'measured', 8, COLORS.dim);
       this.tweens.add({ targets: g, y: 108, duration: 900, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
       const sparks = this.add.particles(gx, 112, 'px', {
         speed: { min: 20, max: 60 }, lifespan: 350, quantity: 6, emitting: false, alpha: { start: 1, end: 0 }, blendMode: 'ADD',
@@ -66,7 +71,7 @@ export class Run extends Phaser.Scene {
     guides.fillStyle(DB.black, 0.6).fillRect(CHART.x, CHART.y, CHART.w, CHART.h);
     const passRate = PASS_BAR / this.result.rounds;
     for (const [rate, color, text, below] of [
-      [CLASSICAL, DB.slate, '75% best classical', true],
+      [CLASSICAL, DB.slate, '75% classical limit (Bell)', true],
       [passRate, DB.yellow, `${Math.round(passRate * 100)}% to open`, false],
     ]) {
       for (let x = CHART.x; x < CHART.x + CHART.w; x += 6) guides.fillStyle(color).fillRect(x, chartY(rate), 4, 1);
@@ -95,7 +100,9 @@ export class Run extends Phaser.Scene {
     this.input.keyboard.on('keydown-M', () => this.showMute(toggleMute()));
     this.updateScore();
 
-    this.time.addEvent({ delay: ROUND_MS, repeat: this.result.rounds - 1, callback: () => this.step(), startAt: -600 });
+    // The rounds start once the CHSH card (first run only) is closed.
+    const start = () => this.time.addEvent({ delay: ROUND_MS, repeat: this.result.rounds - 1, callback: () => this.step(), startAt: -600 });
+    this.time.delayedCall(400, () => conceptCard(this, 'chsh', CONCEPTS.chsh, start));
   }
 
   step() {
