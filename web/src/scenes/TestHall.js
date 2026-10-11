@@ -24,14 +24,20 @@ const SHELF_Y = 224;          // Room 3's upper row of vaults
 const SPEED = 110;
 const JUMP = 315;             // ~60 px high
 const CHANNEL = { x1: 176, x2: 400 };
-// The bridge over Watergirl's channel: 36 px above the dais, 52 above the floor (a full
-// jump), with 36 px of water underneath. She reaches the fountain by walking in under it
-// from the floor on the right, and climbs onto it by jumping up from that floor.
-const BRIDGE = { x1: 176, x2: 416, y: 268 };
-// Watergirl's climb from the bridge to the mirror: diagonal jumps, 48-52 px up each, onto
-// narrow stones (jumping straight up under one bumps her head). A fall just lands on the bridge.
-const STONES = [{ x1: 344, x2: 376, y: 216 }, { x1: 272, x2: 304, y: 168 }];
-const LEDGE = { x1: 176, x2: 240, y: 120 };           // the mirror's ledge, high on the left
+// The bridge over Watergirl's channel: 36 px above the dais, 52 above the floor, 36 px of
+// water underneath. It ends above the fountain's stone basin.
+const BRIDGES = [{ x1: 176, x2: 352, y: 268 }];
+// The fountain's basin: a stone rim over the end of the channel, right at the spout.
+// Watergirl lands on it from the mirror; Fireboy steps down onto it to cross the water.
+const BASIN = { x1: 352, x2: 400, y: 300 };
+const SHELF_STEP = { x1: 416, x2: 432, y: 268 };     // Room 3: from the floor up to the shelf
+// Watergirl's climb from the bridge to the mirror, the hard way: two 1-tile stones and a
+// 2-tile one, each a diagonal jump 48-52 px up (straight up under one bumps her head).
+// A missed jump just drops her back to the bridge.
+const STONES = [{ x1: 304, x2: 320, y: 216 }, { x1: 240, x2: 256, y: 168 }, { x1: 296, x2: 328, y: 120 }];
+// The mirror's ledge sits at the top of the shaft: walk off its right edge and it is a
+// straight fall onto the fountain's basin.
+const LEDGE = { x1: 336, x2: 368, y: 88 };
 const VAULT_AREA = { x1: 432, x2: 640 };
 const SPAWN = { fire: 32, water: 60 };
 const EVEN_FLAME = 0.6;        // flame brightness when the odds are evenly split
@@ -72,13 +78,15 @@ export class TestHall extends Phaser.Scene {
     brickBlock(this, 0, FLOOR, CHANNEL.x1 / T, 3);
     brickBlock(this, CHANNEL.x2, FLOOR, (W - CHANNEL.x2) / T, 3);
     solid(0, FLOOR, W, 40);                                   // the floor runs under the water: you walk on it
-    ledge(BRIDGE);
+    BRIDGES.forEach(ledge);
+    ledge(BASIN);
+    if (room.vaults > 8) ledge(SHELF_STEP);
     STONES.forEach(ledge);
     ledge(LEDGE);
     if (room.vaults > 8) ledge({ x1: VAULT_AREA.x1, x2: VAULT_AREA.x2, y: SHELF_Y });
 
     panel(this, 16, 2, W - 32, 40);
-    label(this, W / 2, 14, `${this.dev ? '' : 'THE HALL OF ECHOES - '}ROOM ${room.id} - ${room.vaults} VAULTS${room.lampsOn ? '' : ' - DARK'}`, 8, COLORS.gold);
+    label(this, W / 2, 14, `${this.dev ? '' : 'THE HALL OF ECHOES - '}ROOM ${room.id} - ${room.vaults} VAULTS${room.lampsOn ? '' : ' - STILL LAMPS'}`, 8, COLORS.gold);
     this.status = label(this, W / 2, 30, 'Fireboy: pull the lever to begin.', 8, COLORS.text);
     this.add.graphics().fillStyle(DB.black, 0.85).fillRect(0, H - 14, W, 14).setDepth(6);
     if (this.dev) {
@@ -100,9 +108,9 @@ export class TestHall extends Phaser.Scene {
     // The dais runs right up to the water's edge, so there is no hidden gap beside it.
     this.dais = new LanternDais(this, 112, CHANNEL.x1, FLOOR, solids);
     this.loop = new WaterLoop(this, CHANNEL.x1, CHANNEL.x2, FLOOR);
-    this.mirror = new Mirror(this, 206, LEDGE.y);
-    this.dial = new LapDial(this, 56, 150);
-    this.mural = room.mural ? new Mural(this, 322, 50) : null;
+    this.mirror = new Mirror(this, 348, LEDGE.y);
+    this.dial = new LapDial(this, 56, 168);
+    this.mural = room.mural ? new Mural(this, 4, 43) : null;
     this.vaults = [];
     this.lamps = [];
     vaultLayout(room.vaults).forEach(({ cx, floorY, w }, i) => {
@@ -129,7 +137,7 @@ export class TestHall extends Phaser.Scene {
     this.input.keyboard.on('keydown-BACKTICK', () => this.debug.setVisible(!this.debug.visible));
     this.input.keyboard.on('keydown-L', () => {
       this.hall.lampsOn = !this.hall.lampsOn;
-      this.say(this.hall.lampsOn ? 'Lamps on: prying is off.' : 'Lamps dark: Fireboy can pry a vault.');
+      this.say(this.hall.lampsOn ? 'Live lamps: prying is off.' : 'Still lamps: Fireboy can pry a vault.');
       this.refresh();
     });
     this.input.keyboard.on('keydown-R', () => { this.hall.reset(); this.respawn(); this.refresh(); this.say('Fresh room.'); });
@@ -276,12 +284,12 @@ export class TestHall extends Phaser.Scene {
     this.debug.setText([
       `room   ${this.room.id} (${h.vaults} vaults, pool ${this.poolMode})`,
       `state  ${h.state}`, `laps   ${h.laps}${h.marked ? ' (marked)' : ''}`, `key    vault ${h.key + 1}`, `read   ${last}`,
-      `lamps  ${h.lampsOn ? 'on' : 'dark'}   fails ${h.failedReads}`,
+      `lamps  ${h.lampsOn ? 'live' : 'still'}   fails ${h.failedReads}`,
       `key chance ${(this.chanceNow() * 100).toFixed(1)}%`,
     ].join('\n'));
   }
 
-  // The key's chance on a read right now, from the formula (shown even when the lamps are dark).
+  // The key's chance on a read right now, from the formula (shown even when the lamps are still).
   chanceNow() {
     const lit = this.hall.lampsOn;
     this.hall.lampsOn = true;

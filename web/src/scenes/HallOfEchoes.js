@@ -11,7 +11,7 @@ import { TestHall } from './TestHall.js';
 const INTRO = {
   1: 'Try a read first: Fireboy, pull the lever, then read on the dais.',
   2: 'Eight vaults. Read with no laps, then try more and more laps.',
-  3: 'Sixteen vaults, and the lamps are dark. How many laps?',
+  3: 'Sixteen vaults, and these lamps never change. How many laps?',
 };
 
 const REVEAL = 'You ran Grover\'s search. The fountain flipped the key\'s phase, and the pool turned that flip into brightness. Each lap rotates the odds toward the key, but past the peak it rotates away again. The laps you need grow like the square root of the number of vaults, not like the number of vaults.';
@@ -38,7 +38,7 @@ export class HallOfEchoes extends TestHall {
   }
 
   // Coaching in the lit rooms: start with a blind read, then add laps one at a time
-  // until the read gets worse again. The dark room is left to what players learned.
+  // until the read gets worse again. Room 3 (still lamps) is left to what players learned.
   afterReveal(vault) {
     if (!this.room.lampsOn) { super.afterReveal(vault); return; }
     const n = this.room.vaults;

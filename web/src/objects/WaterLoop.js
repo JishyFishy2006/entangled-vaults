@@ -34,7 +34,8 @@ export class WaterLoop {
     this.ripples = scene.add.graphics();
     this.rippleList = [];
 
-    this.fountain = scene.physics.add.existing(scene.add.zone(sx, floorY - 20, 32, 40), true);
+    // Covers the stone basin over the channel's last 48 px (and the water under it).
+    this.fountain = scene.physics.add.existing(scene.add.zone(x2 - 24, floorY - 26, 48, 52), true);
     this.hazard = scene.physics.add.existing(scene.add.zone((x1 + x2) / 2, floorY + 2, x2 - x1 - 8, 6), true);
 
     scene.events.on('update', this.animate, this);

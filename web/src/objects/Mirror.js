@@ -17,7 +17,7 @@ export class Mirror {
     g.fillStyle(DB.cyan, 0.6).fillRect(x + 2, top + 16, 3, 8);
     this.flashRect = scene.add.rectangle(x, top + 15, 14, 24, DB.white, 0).setBlendMode(Phaser.BlendModes.ADD);
     this.glow = scene.add.image(x, top + 15, 'glow').setTint(DB.white).setBlendMode(Phaser.BlendModes.ADD).setAlpha(0).setScale(1.2);
-    label(scene, x, top - 14, 'MIRROR', 8, COLORS.dim);
+    label(scene, x + 38, top + 10, 'MIRROR', 8, COLORS.dim);   // beside it, clear of the title panel
     this.zone = scene.physics.add.existing(scene.add.zone(x, ledgeY - 18, 30, 36), true);
   }
 

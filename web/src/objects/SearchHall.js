@@ -16,7 +16,8 @@ import { groverRead, lampLevels } from '../quantum.js';
 export const MAX_LAPS = 4;
 
 export class SearchHall {
-  // vaults: 4, 8 or 16. lampsOn: lit rooms show brightness and forbid prying.
+  // vaults: 4, 8 or 16. lampsOn: live lamps follow the odds and forbid prying;
+  // without them (Room 3) the lamps stay evenly lit and prying is allowed.
   // pool: a Grover pool file object. rng: for the key (tests pass their own).
   constructor({ vaults, lampsOn = true, pool, rng = Math.random }) {
     Object.assign(this, { vaults, lampsOn, pool, rng });
@@ -104,7 +105,7 @@ export class SearchHall {
     return this.resolve(vault);
   }
 
-  // Fireboy forces a sealed vault: only where the lamps are dark. Returns 'key', 'lava' or 'denied'.
+  // Fireboy forces a sealed vault: only where the lamps are still. Returns 'key', 'lava' or 'denied'.
   pry(vault) {
     if (!this.canPry) return 'denied';
     return this.resolve(vault);
@@ -122,14 +123,15 @@ export class SearchHall {
     return 'lava';
   }
 
-  // Chance per vault, for the lamps. Dark rooms show nothing. Before the lever the
-  // odds are even (the formula at 0 laps). After a read the search is spent: the
-  // state has collapsed onto the vault that was read, so only its lamp stays lit.
+  // Chance per vault, for the lamps. Before the lever the odds are even (the formula at
+  // 0 laps). Rooms without live lamps (Room 3) stay at that even glow whatever the laps,
+  // so they reveal nothing. After a read the search is spent: the state has collapsed
+  // onto the vault that was read, so only its lamp stays lit.
   lamps() {
-    if (!this.lampsOn) return new Array(this.vaults).fill(0);
     if (this.state === 'read' || (this.state === 'opened' && this.unsealed !== null)) {
       return Array.from({ length: this.vaults }, (_, v) => (v === this.unsealed ? 1 : 0));
     }
-    return lampLevels(this.vaults, this.state === 'sealed' ? 0 : this.laps, this.key);
+    const laps = this.state === 'sealed' || !this.lampsOn ? 0 : this.laps;
+    return lampLevels(this.vaults, laps, this.key);
   }
 }

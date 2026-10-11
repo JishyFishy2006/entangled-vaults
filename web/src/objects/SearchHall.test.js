@@ -96,9 +96,9 @@ describe('SearchHall', () => {
     const lit = new SearchHall({ vaults: 8, pool, rng: fixedKey(4) });
     expect(lit.pry(4)).toBe('denied');
     const dark = new SearchHall({ vaults: 8, lampsOn: false, pool, rng: fixedKey(4) });
-    expect(dark.lamps().every(l => l === 0)).toBe(true);
-    dark.pullLever(); dark.lap();
-    expect(dark.lamps().every(l => l === 0)).toBe(true);     // dark rooms stay dark
+    dark.lamps().forEach(l => expect(l).toBeCloseTo(1 / 8, 12));
+    dark.pullLever(); dark.lap(); dark.lap();
+    dark.lamps().forEach(l => expect(l).toBeCloseTo(1 / 8, 12));   // still lamps never change
     expect(dark.pry(4)).toBe('key');
     expect(dark.state).toBe('opened');
   });
@@ -135,10 +135,10 @@ describe('the three rooms', () => {
       }
       expect(right / 1000).toBeGreaterThan(0.9);
     }
-    const dark = new SearchHall({ vaults: 16, lampsOn: false, pool });
-    dark.pullLever(); dark.lap();
-    expect(dark.lamps().every(l => l === 0)).toBe(true);
-    expect(dark.canPry).toBe(true);
+    const still = new SearchHall({ vaults: 16, lampsOn: false, pool });
+    still.pullLever(); still.lap(); still.lap(); still.lap();
+    still.lamps().forEach(l => expect(l).toBeCloseTo(1 / 16, 12));
+    expect(still.canPry).toBe(true);
   });
 });
 

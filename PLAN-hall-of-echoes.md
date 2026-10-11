@@ -15,6 +15,7 @@ Commit after every phase.
 1. **Spread:** Fireboy pulls the `SpreadLever`. Laps reset to 0. Pulling it mid-search resets the search.
 2. **Laps:** Watergirl presses DOWN at the Echo Fountain (low on the right, at the end of her water channel) and then at the Mirror (on a high ledge on the left, reached by platforming). Fountain then mirror = one lap. `LapDial` shows 0 to 4 and the mirror won't turn past 4. Fireboy dies in the water.
    *Added Oct 10, 2026:* the two can be pressed in any order, as the real operators behave. The fountain (oracle) toggles a hidden mark on the key; the mirror (diffuser) after a mark completes a lap, without one it runs the last lap backwards, and at 0 laps it does nothing. Fountain twice or mirror twice changes nothing. Every sequence lands on a lap count the pools cover, so lamps and reads are unchanged in kind (checked against a true amplitude simulation in `SearchHall.test.js`).
+   *Added Oct 10, 2026 (climb):* the climb to the mirror is the hard part: up from the bridge onto three small stones (the first can't be reached by jumping straight up under it), then the mirror ledge. Walking off the ledge's right edge is a straight fall onto the fountain's stone basin, which sits over the end of the channel. Fireboy crosses the water on the bridge and the basin. In Room 3, a one-tile step leads from the floor up to the shelf.
 3. **Read:** Fireboy stands on the `LanternDais` and presses the read key. One draw from the pool unseals one vault.
 4. **Open:** a hero opens the unsealed vault: key = room cleared; wrong = lava.
 
@@ -88,7 +89,7 @@ Formula: P = sin²((2k+1)θ), sin θ = 1/√N.
 
 **Decode.** `parseInt(bits, 2)` gives the vault number (qubit 0 is the rightmost character). Real vault = `parseInt(bits, 2) ^ key`.
 
-**Lamps.** Brightness is computed from the formula, not from the pool: the key's lamp gets P, every other lamp gets (1 − P)/(N − 1). Room 3 lamps stay dark.
+**Lamps.** Brightness is computed from the formula, not from the pool: the key's lamp gets P, every other lamp gets (1 − P)/(N − 1). Room 3 lamps stay dark. *Changed Oct 10, 2026:* Room 3's lamps are "still lamps": all evenly lit (1/16) from the start, and they never change with laps, so they give no hint. Prying is allowed there because the lamps reveal nothing.
 
 **Pool file** `web/public/pools/grover-<mode>.json`, same format as earlier pools. Keys `v4_k0` … `v4_k4`, `v8_k0` … `v8_k4`, `v16_k0` … `v16_k4` (15 tallies, 1,000 shots each).
 
