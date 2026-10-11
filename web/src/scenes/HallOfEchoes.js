@@ -1,7 +1,7 @@
 import { markCleared } from '../clears.js';
 import { Menu } from '../menu.js';
 import { ROOMS } from '../objects/rooms.js';
-import { groverPoolMode, groverShare } from '../quantum.js';
+import { bestLaps, groverPoolMode, groverShare, lampLevels } from '../quantum.js';
 import { keyHint, panel } from '../art.js';
 import { COLORS, DB, H, W, label } from './style.js';
 import { TestHall } from './TestHall.js';
@@ -10,8 +10,8 @@ import { TestHall } from './TestHall.js';
 // (same objects and rules) without its debug keys.
 const INTRO = {
   1: 'Try a read first: Fireboy, pull the lever, then read on the dais.',
-  2: 'Eight vaults. Watch the lamps as you swim.',
-  3: 'Sixteen vaults, and the lamps are dark.',
+  2: 'Eight vaults. Read with no laps, then try more and more laps.',
+  3: 'Sixteen vaults, and the lamps are dark. How many laps?',
 };
 
 const REVEAL = 'You ran Grover\'s search. The fountain flipped the key\'s phase, and the pool turned that flip into brightness. Each lap rotates the odds toward the key, but past the peak it rotates away again. The laps you need grow like the square root of the number of vaults, not like the number of vaults.';
@@ -37,16 +37,23 @@ export class HallOfEchoes extends TestHall {
     this.scene.pause();
   }
 
-  // Room 1's nudge: show a blind guess first, then what one lap does.
+  // Coaching in the lit rooms: start with a blind read, then add laps one at a time
+  // until the read gets worse again. The dark room is left to what players learned.
   afterReveal(vault) {
-    const laps = this.hall.lastRead?.laps;
-    if (this.room.id === 1 && laps === 0) {
-      this.say(`Vault ${vault + 1}: a blind guess, 1 in 4. Pull the lever, swim one lap, read again.`, COLORS.gold);
-    } else if (this.room.id === 1 && laps === 1) {
-      this.say(`Vault ${vault + 1} unseals. One lap, and the read is certain. Open it!`, COLORS.gold);
-    } else {
-      super.afterReveal(vault);
-    }
+    if (!this.room.lampsOn) { super.afterReveal(vault); return; }
+    const n = this.room.vaults;
+    const k = this.hall.lastRead.laps;
+    const best = bestLaps(n);
+    const chance = laps => lampLevels(n, laps, 0)[0];
+    const sure = `${Math.round(chance(k) * 100)}%`;
+    const laps = c => `${c} lap${c === 1 ? '' : 's'}`;
+    let tip;
+    if (k === 0) tip = `A blind guess (${sure}). Lever, then try ${laps(1)}.`;
+    else if (k < best) tip = `Better: ${sure} sure. Lever, then try ${laps(k + 1)}.`;
+    else if (k === best) tip = `The peak: ${sure} sure. Open it, or dare ${laps(k + 1)}?`;
+    else if (chance(k) >= chance(best) - 0.01) tip = `Full circle: ${sure} again. ${laps(best)} was enough.`;
+    else tip = `Too far: only ${sure} now. ${laps(best)} was best.`;
+    this.say(`Vault ${vault + 1} unseals. ${tip}`, COLORS.gold);
   }
 
   onCleared() {

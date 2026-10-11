@@ -17,7 +17,7 @@ export class HallPitch extends SlideDeck {
 
   create() {
     this.pools = { ideal: this.cache.json.get('pool-grover-ideal'), 'ionq-aria-1': this.cache.json.get('pool-grover-ionq-aria-1') };
-    this.startDeck([this.slideBits, this.slideLap, this.slideOvershoot, this.slideVersus], 17);
+    this.startDeck([this.slideBits, this.slideLap, this.slideOvershoot, this.slideVersus, this.slideCircuit], 17);
   }
 
   slideBits() {
@@ -156,5 +156,35 @@ export class HallPitch extends SlideDeck {
       [fellBack ? 'Real noise hurts deep circuits: Room 3 falls back to the ideal pool.' : 'Real noise lowers every read on hardware.', COLORS.dim],
     ].forEach(([line, color], k) => this.text(W / 2, 196 + k * 14, line, 8, color));
     this.text(W / 2, 296, 'Any computer searches 16 vaults instantly: the win is in the looks.', 8, COLORS.gold);
+  }
+
+  slideCircuit() {
+    this.title('5. THE CIRCUIT', '8 vaults = 3 qubits. One lap is shown; the game runs 0 to 4.');
+    const g = this.graphics();
+    const ys = [96, 118, 140];
+    ys.forEach((y, i) => this.wire(g, 104, 470, y, `q${i}`));
+    ys.forEach(y => this.gate(g, 128, y, 18, 18, 'H'));
+    this.gate(g, 186, 118, 44, 62, 'FLIP\n000', 0x5a2a4a);
+    ys.forEach(y => this.gate(g, 254, y, 18, 18, 'H'));
+    this.gate(g, 300, 118, 44, 62, 'FLIP\n000', DB.navy);
+    ys.forEach(y => this.gate(g, 346, y, 18, 18, 'H'));
+    ys.forEach(y => this.gate(g, 406, y, 18, 18, 'M', DB.iron));
+    this.text(480, 118, 'vault number', 8, COLORS.text, 0);
+    // The repeated part: fountain then mirror, once per lap.
+    g.lineStyle(1, DB.yellow).strokeRect(158, 80, 202, 76);
+    this.text(259, 72, 'repeat once per lap', 8, COLORS.gold);
+    g.lineStyle(1, DB.cyan, 0.7).strokeRect(240, 84, 116, 68);
+    [[118, 'spread'], [198, 'fountain'], [300, 'mirror'], [406, 'read']].forEach(([x, t]) => this.text(x, 168, t, 8, COLORS.gold));
+    this.text(W / 2, 186, 'FLIP 000 = X on every qubit, a controlled-Z, X again: it flips only 000.', 8, COLORS.dim);
+    this.code(56, 204, [
+      'qc.h(range(n))                    # the spread lever',
+      'for lap in range(laps):',
+      '    flip_all_zero(qc, n)          # the Echo Fountain',
+      '    qc.h(range(n)); flip_all_zero(qc, n); qc.h(range(n))  # mirror',
+      "qc.measure(range(n), range(n))    # Fireboy's read",
+    ]);
+    this.text(W / 2, 274, 'The pools always mark vault 0; the game moves the answer to the key', 8, COLORS.dim);
+    this.text(W / 2, 286, 'with XOR, which is exact for this search. 15 circuits x 1,000 shots.', 8, COLORS.dim);
+    this.text(W / 2, 312, 'SPACE: back', 8);
   }
 }

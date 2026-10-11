@@ -1,7 +1,16 @@
 // The search routine for one room, as a small state machine with no Phaser in it:
-//   sealed -> spread (lever) -> lapping (each lap) -> read (dais) -> opened (key found)
+//   sealed -> spread (lever) -> lapping (fountain / mirror) -> read (dais) -> opened (key found)
 // A wrong vault floods the room: back to sealed with a new random key.
 // Lamps come from lampLevels (the formula); reads come from the pool via groverRead.
+//
+// The fountain is the oracle (flips the key's sign) and the mirror is the diffuser
+// (reflects about the average); each undoes itself if used twice. Any sequence of them
+// leaves the state as `laps` completed laps, with the key `marked` or not:
+//   fountain:            marked = !marked
+//   mirror, marked:      laps + 1, unmarked          (a full lap)
+//   mirror, unmarked:    laps - 1, marked            (the last lap, run backwards)
+//   mirror at 0 laps:    no change                   (reflecting an even spread)
+// The mark is a sign, so it never changes a lamp or a read: both depend on laps only.
 import { groverRead, lampLevels } from '../quantum.js';
 
 export const MAX_LAPS = 4;
@@ -19,6 +28,7 @@ export class SearchHall {
   reset() {
     this.state = 'sealed';
     this.laps = 0;
+    this.marked = false;
     this.unsealed = null;
     this.lastRead = null;
     this.key = Math.floor(this.rng() * this.vaults);
@@ -35,18 +45,45 @@ export class SearchHall {
     if (this.state === 'opened') return false;
     this.state = 'spread';
     this.laps = 0;
+    this.marked = false;
     this.unsealed = null;
     this.emit('spread');
     return true;
   }
 
-  // Watergirl finishes a loop. Only counts during a search, up to the cap.
+  // Watergirl uses the fountain: marks the key, or unmarks it.
+  fountain() {
+    if (!this.searching) return false;
+    this.marked = !this.marked;
+    this.state = 'lapping';
+    this.emit('fountain', this.marked);
+    return true;
+  }
+
+  // Watergirl uses the mirror. Returns 'lap', 'unlap', 'idle', 'cap' or null (no search).
+  mirror() {
+    if (!this.searching) return null;
+    if (this.marked) {
+      if (this.laps >= MAX_LAPS) { this.emit('cap'); return 'cap'; }
+      this.laps++;
+      this.marked = false;
+      this.state = 'lapping';
+      this.emit('lap', this.laps);
+      return 'lap';
+    }
+    if (this.laps === 0) { this.emit('idle'); return 'idle'; }
+    this.laps--;
+    this.marked = true;
+    this.state = 'lapping';
+    this.emit('unlap', this.laps);
+    return 'unlap';
+  }
+
+  // A full lap: the fountain (if the key isn't already marked), then the mirror.
   lap() {
     if (!this.searching || this.laps >= MAX_LAPS) return false;
-    this.laps++;
-    this.state = 'lapping';
-    this.emit('lap', this.laps);
-    return true;
+    if (!this.marked) this.fountain();
+    return this.mirror() === 'lap';
   }
 
   // Fireboy reads from the dais, with however many laps are done so far.

@@ -13,7 +13,8 @@ Commit after every phase.
 
 **The search routine.**
 1. **Spread:** Fireboy pulls the `SpreadLever`. Laps reset to 0. Pulling it mid-search resets the search.
-2. **Laps:** Watergirl swims a one-way `WaterLoop`: Echo Fountain zone, then Mirror Pool zone. Both in order = one lap. `LapDial` shows 0 to 4; the loop gate closes at 4. Fireboy dies in the water.
+2. **Laps:** Watergirl presses DOWN at the Echo Fountain (low on the right, at the end of her water channel) and then at the Mirror (on a high ledge on the left, reached by platforming). Fountain then mirror = one lap. `LapDial` shows 0 to 4 and the mirror won't turn past 4. Fireboy dies in the water.
+   *Added Oct 10, 2026:* the two can be pressed in any order, as the real operators behave. The fountain (oracle) toggles a hidden mark on the key; the mirror (diffuser) after a mark completes a lap, without one it runs the last lap backwards, and at 0 laps it does nothing. Fountain twice or mirror twice changes nothing. Every sequence lands on a lap count the pools cover, so lamps and reads are unchanged in kind (checked against a true amplitude simulation in `SearchHall.test.js`).
 3. **Read:** Fireboy stands on the `LanternDais` and presses the read key. One draw from the pool unseals one vault.
 4. **Open:** a hero opens the unsealed vault: key = room cleared; wrong = lava.
 

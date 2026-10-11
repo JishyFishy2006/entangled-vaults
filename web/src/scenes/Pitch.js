@@ -16,7 +16,7 @@ export class Pitch extends SlideDeck {
 
   create() {
     this.stats = this.computeStats();
-    this.startDeck([this.slideWall, this.slideEntangled, this.slideNoise, this.slideWhy], 13);
+    this.startDeck([this.slideWall, this.slideEntangled, this.slideNoise, this.slideWhy, this.slideCircuit], 13);
   }
 
   computeStats() {
@@ -144,6 +144,33 @@ export class Pitch extends SlideDeck {
     this.layer.add([red, blue]);
     this.text(W / 2, 246, 'THANKS FOR PLAYING!', 16, COLORS.gold);
     this.text(W / 2, 278, 'Art: chierit (heroes), DragonDePlatino & DawnBringer (DawnLike), CC BY 4.0', 8, COLORS.dim);
-    this.text(W / 2, 304, 'SPACE: back to the level select', 8);
+  }
+
+  slideCircuit() {
+    this.title('5. THE CIRCUIT', 'Run once per dial pair before you play: 2 qubits, one per gem.');
+    const g = this.graphics();
+    const [y0, y1] = [96, 140];
+    this.wire(g, 132, 500, y0, 'q0 fire');
+    this.wire(g, 132, 500, y1, 'q1 water');
+    this.gate(g, 176, y0, 22, 22, 'H');
+    this.cnot(g, 230, y0, y1);
+    this.gate(g, 300, y0, 48, 22, 'RY a');
+    this.gate(g, 300, y1, 48, 22, 'RY b');
+    this.gate(g, 380, y0, 22, 22, 'M', DB.iron);
+    this.gate(g, 380, y1, 22, 22, 'M', DB.iron);
+    this.text(510, y0, 'red / blue', 8, PLAYERS.fire.text, 0);
+    this.text(510, y1, 'red / blue', 8, PLAYERS.water.text, 0);
+    [[176, 'coin'], [230, 'link'], [300, 'lenses'], [380, 'read']].forEach(([x, t]) => this.text(x, 166, t, 8, COLORS.gold));
+    this.code(64, 190, [
+      'qc = QuantumCircuit(2, 2)',
+      "qc.h(0)                     # Fireboy's gem: a 50/50 coin",
+      'qc.cx(0, 1)                 # link the gems: a Bell pair',
+      "qc.ry(fire_pos * pi/4, 0)   # Fireboy's lens, 45 deg a step",
+      "qc.ry(water_pos * pi/4, 1)  # Watergirl's lens",
+      'qc.measure([0, 1], [0, 1])  # 0 = red, 1 = blue',
+    ]);
+    this.text(W / 2, 278, 'H and the CNOT make the gems always agree; each RY tilts how one gem', 8, COLORS.dim);
+    this.text(W / 2, 290, 'is read. The game draws each round from 64 x 1,000 precomputed shots.', 8, COLORS.dim);
+    this.text(W / 2, 312, 'SPACE: back', 8);
   }
 }

@@ -3,9 +3,10 @@ import { T, brickBlock, keyHint, panel, templeBackground } from '../art.js';
 import { animateHero, faceHero, makeHero } from '../heroes.js';
 import { LanternDais } from '../objects/LanternDais.js';
 import { LapDial } from '../objects/LapDial.js';
+import { Mirror } from '../objects/Mirror.js';
 import { Mural } from '../objects/Mural.js';
 import { MURAL_AFTER_FAILED_READS, ROOMS } from '../objects/rooms.js';
-import { SearchHall } from '../objects/SearchHall.js';
+import { MAX_LAPS, SearchHall } from '../objects/SearchHall.js';
 import { SpreadLever } from '../objects/SpreadLever.js';
 import { Vault } from '../objects/Vault.js';
 import { VaultLamp } from '../objects/VaultLamp.js';
@@ -21,11 +22,16 @@ import { COLORS, DB, H, PLAYERS, W, label } from './style.js';
 const FLOOR = 320;
 const SHELF_Y = 224;          // Room 3's upper row of vaults
 const SPEED = 110;
-const JUMP = 315;
-const LOOP = { x1: 176, x2: 400 };
-// The bridge starts where the water does and clears Fireboy's head on the dais (top 270),
-// while leaving Watergirl 52 px to swim under.
-const BRIDGE = { x1: 176, x2: 416, y: 252 };
+const JUMP = 315;             // ~60 px high
+const CHANNEL = { x1: 176, x2: 400 };
+// The bridge over Watergirl's channel: 36 px above the dais, 52 above the floor (a full
+// jump), with 36 px of water underneath. She reaches the fountain by walking in under it
+// from the floor on the right, and climbs onto it by jumping up from that floor.
+const BRIDGE = { x1: 176, x2: 416, y: 268 };
+// Watergirl's climb from the bridge to the mirror: diagonal jumps, 48-52 px up each, onto
+// narrow stones (jumping straight up under one bumps her head). A fall just lands on the bridge.
+const STONES = [{ x1: 344, x2: 376, y: 216 }, { x1: 272, x2: 304, y: 168 }];
+const LEDGE = { x1: 176, x2: 240, y: 120 };           // the mirror's ledge, high on the left
 const VAULT_AREA = { x1: 432, x2: 640 };
 const SPAWN = { fire: 32, water: 60 };
 const EVEN_FLAME = 0.6;        // flame brightness when the odds are evenly split
@@ -59,18 +65,17 @@ export class TestHall extends Phaser.Scene {
 
   create() {
     const room = this.room;
-    templeBackground(this, { seed: 20 + room.id, candles: [[40, 150], [300, 120]] });
+    templeBackground(this, { seed: 20 + room.id, candles: [[120, 72], [624, 100]] });
     const solids = this.physics.add.staticGroup();
     const solid = (x1, y, x2, h) => solids.add(this.add.zone((x1 + x2) / 2, y + h / 2, x2 - x1, h));
-    brickBlock(this, 0, FLOOR, LOOP.x1 / T, 3);
-    brickBlock(this, LOOP.x2, FLOOR, (W - LOOP.x2) / T, 3);
+    const ledge = ({ x1, x2, y }) => { brickBlock(this, x1, y, (x2 - x1) / T, 1); solid(x1, y, x2, T); };
+    brickBlock(this, 0, FLOOR, CHANNEL.x1 / T, 3);
+    brickBlock(this, CHANNEL.x2, FLOOR, (W - CHANNEL.x2) / T, 3);
     solid(0, FLOOR, W, 40);                                   // the floor runs under the water: you walk on it
-    brickBlock(this, BRIDGE.x1, BRIDGE.y, (BRIDGE.x2 - BRIDGE.x1) / T, 1);
-    solid(BRIDGE.x1, BRIDGE.y, BRIDGE.x2, 16);
-    if (room.vaults > 8) {
-      brickBlock(this, VAULT_AREA.x1, SHELF_Y, (VAULT_AREA.x2 - VAULT_AREA.x1) / T, 1);
-      solid(VAULT_AREA.x1, SHELF_Y, VAULT_AREA.x2, 16);
-    }
+    ledge(BRIDGE);
+    STONES.forEach(ledge);
+    ledge(LEDGE);
+    if (room.vaults > 8) ledge({ x1: VAULT_AREA.x1, x2: VAULT_AREA.x2, y: SHELF_Y });
 
     panel(this, 16, 2, W - 32, 40);
     label(this, W / 2, 14, `${this.dev ? '' : 'THE HALL OF ECHOES - '}ROOM ${room.id} - ${room.vaults} VAULTS${room.lampsOn ? '' : ' - DARK'}`, 8, COLORS.gold);
@@ -80,9 +85,9 @@ export class TestHall extends Phaser.Scene {
       label(this, W / 2, H - 7, 'FIRE: ADW + S use | WATER: arrows + DOWN use | ` debug 1-3 room R reset', 8, COLORS.dim).setDepth(6);
     } else {
       keyHint(this, 10, H - 7, ['A', 'D', 'W'], 'move').setDepth(6);
-      keyHint(this, 104, H - 7, ['S'], 'lever / read / open').setDepth(6);
-      keyHint(this, 330, H - 7, ['left', 'right', 'up'], 'move').setDepth(6);
-      keyHint(this, 424, H - 7, ['down'], 'open a vault').setDepth(6);
+      keyHint(this, 104, H - 7, ['S'], 'lever/read/open').setDepth(6);
+      keyHint(this, 300, H - 7, ['left', 'right', 'up'], 'move').setDepth(6);
+      keyHint(this, 390, H - 7, ['down'], 'fountain/mirror').setDepth(6);
       for (const c of this.children.list.filter(o => o.type === 'Container')) c.setDepth(6);
     }
 
@@ -93,17 +98,17 @@ export class TestHall extends Phaser.Scene {
     this.hall.onChange = (event, data) => this.onHall(event, data);
     this.lever = new SpreadLever(this, 88, FLOOR);
     // The dais runs right up to the water's edge, so there is no hidden gap beside it.
-    this.dais = new LanternDais(this, 112, LOOP.x1, FLOOR, solids);
-    this.loop = new WaterLoop(this, LOOP.x1, LOOP.x2, FLOOR, () => this.hall.lap());
-    this.dial = new LapDial(this, (LOOP.x1 + LOOP.x2) / 2, 200);
-    this.mural = room.mural ? new Mural(this, 150, 56) : null;
+    this.dais = new LanternDais(this, 112, CHANNEL.x1, FLOOR, solids);
+    this.loop = new WaterLoop(this, CHANNEL.x1, CHANNEL.x2, FLOOR);
+    this.mirror = new Mirror(this, 206, LEDGE.y);
+    this.dial = new LapDial(this, 56, 150);
+    this.mural = room.mural ? new Mural(this, 322, 50) : null;
     this.vaults = [];
     this.lamps = [];
     vaultLayout(room.vaults).forEach(({ cx, floorY, w }, i) => {
       this.vaults.push(new Vault(this, i, cx, floorY, w));
       this.lamps.push(new VaultLamp(this, cx, floorY - 54));
     });
-    solids.add(this.loop.gateZone);
 
     // Heroes: the animated Fire Knight and Water Priestess, feet on the floor.
     this.heroes = {};
@@ -149,6 +154,8 @@ export class TestHall extends Phaser.Scene {
     const { sprite: rect } = hero;
     const world = this.physics.world;
     const vault = this.vaultAt(rect);
+    const atFountain = world.overlap(rect, this.loop.fountain);
+    const atMirror = world.overlap(rect, this.mirror.zone);
     if (hero.id === 'fire' && world.overlap(rect, this.lever.zone)) {
       this.lever.pull();
       sfx.lever(this);
@@ -160,6 +167,13 @@ export class TestHall extends Phaser.Scene {
       }
       this.dais.flash();
       this.hall.read();
+    } else if (atFountain || atMirror) {
+      if (hero.id !== 'water') { this.say('Only Watergirl can work the fountain and the mirror.', COLORS.dim); return; }
+      if (!this.hall.searching) {
+        this.say(this.hall.state === 'read' ? 'The echo is spent. Pull the lever to search again.' : 'Nothing echoes yet: Fireboy must pull the lever.', COLORS.dim);
+        return;
+      }
+      if (atFountain) this.hall.fountain(); else this.hall.mirror();
     } else if (vault) {
       if (this.revealing) {
         this.say('Wait for the lanterns to choose...', COLORS.dim);
@@ -174,8 +188,18 @@ export class TestHall extends Phaser.Scene {
   }
 
   onHall(event, data) {
-    if (event === 'spread') { this.stopRoulette(); this.loop.reset(); this.say(this.hall.lampsOn ? 'The lamps glow evenly. Watergirl: swim laps!' : 'The search begins. Watergirl: swim laps!'); }
-    if (event === 'lap') { sfx.pickup(this); this.say(data >= 4 ? 'Lap 4. The loop gate closes.' : `Lap ${data}.`); }
+    if (event === 'spread') {
+      this.stopRoulette();
+      this.say('Watergirl: DOWN at the fountain, then at the mirror up high.');
+    }
+    if (event === 'fountain') {
+      this.loop.splash(data);
+      this.say(data ? 'The fountain marks the key. Now the mirror, up high.' : 'The fountain again: the mark is gone.', COLORS.text);
+    }
+    if (event === 'lap') { this.mirror.flash(true); sfx.pickup(this); this.say(`The mirror turns the mark into light: lap ${data}.`); }
+    if (event === 'unlap') { this.mirror.flash(false); this.say(`No mark: the mirror runs backwards, to lap ${data} (marked).`); }
+    if (event === 'idle') { this.mirror.flash(false); this.say('Nothing to reflect yet: the fountain first.', COLORS.dim); }
+    if (event === 'cap') this.say(`The mirror won't turn past ${MAX_LAPS} laps.`, COLORS.dim);
     if (event === 'read') { sfx.ready(this); this.say('The lanterns are choosing...', COLORS.gold); this.startRoulette(data); }
     if (event === 'cleared') { sfx.open(this); this.onCleared(); }
     if (event === 'lava') this.flood(data);
@@ -191,7 +215,7 @@ export class TestHall extends Phaser.Scene {
   refresh() {
     const h = this.hall;
     this.dial.set(h.laps);
-    this.loop.setGate(h.gateClosed);
+    this.loop.setMarked(h.marked && h.searching);
     if (!this.revealing) {
       // Flame: compared with an even split (all lit at the start). Glow: the chance itself.
       h.lamps().forEach((level, i) => this.lamps[i].set(EVEN_FLAME * level * h.vaults, level));
@@ -241,7 +265,7 @@ export class TestHall extends Phaser.Scene {
     this.afterReveal(chosen);
   }
 
-  // What to say once the read lands. The game's hall adds Room 1's nudge.
+  // What to say once the read lands. The game's hall adds coaching in the lit rooms.
   afterReveal(vault) {
     this.say(`Vault ${vault + 1} unseals! Open it.`, COLORS.gold);
   }
@@ -251,7 +275,7 @@ export class TestHall extends Phaser.Scene {
     const last = h.lastRead ? `vault ${h.lastRead.vault + 1} at ${h.lastRead.laps} laps` : '-';
     this.debug.setText([
       `room   ${this.room.id} (${h.vaults} vaults, pool ${this.poolMode})`,
-      `state  ${h.state}`, `laps   ${h.laps}`, `key    vault ${h.key + 1}`, `read   ${last}`,
+      `state  ${h.state}`, `laps   ${h.laps}${h.marked ? ' (marked)' : ''}`, `key    vault ${h.key + 1}`, `read   ${last}`,
       `lamps  ${h.lampsOn ? 'on' : 'dark'}   fails ${h.failedReads}`,
       `key chance ${(this.chanceNow() * 100).toFixed(1)}%`,
     ].join('\n'));
@@ -308,7 +332,6 @@ export class TestHall extends Phaser.Scene {
       faceHero(h.sprite, h.id, 1);
       h.frozen = false;
     }
-    this.loop.reset();
   }
 
   fireInWater() {

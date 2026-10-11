@@ -141,3 +141,51 @@ describe('the three rooms', () => {
     expect(dark.canPry).toBe(true);
   });
 });
+
+describe('fountain and mirror in any order', () => {
+  // The real amplitudes: start even, the fountain flips the key's sign, the mirror reflects
+  // every amplitude about the average. The hall's lamps must match their squares exactly.
+  const simulate = (vaults, key) => {
+    let amps = new Array(vaults).fill(1 / Math.sqrt(vaults));
+    return {
+      fountain() { amps = amps.map((a, i) => (i === key ? -a : a)); },
+      mirror() { const mean = amps.reduce((x, y) => x + y, 0) / vaults; amps = amps.map(a => 2 * mean - a); },
+      probs: () => amps.map(a => a * a),
+    };
+  };
+
+  it('pressing the fountain twice, or the mirror twice, changes nothing', () => {
+    const hall = new SearchHall({ vaults: 8, pool, rng: fixedKey(2) });
+    hall.pullLever(); hall.lap(); hall.lap();
+    const before = hall.lamps();
+    hall.fountain(); hall.fountain();
+    expect(hall.lamps()).toEqual(before);
+    hall.mirror(); hall.mirror();
+    expect(hall.laps).toBe(2);
+    expect(hall.lamps()).toEqual(before);
+  });
+
+  it('a lone mirror runs the last lap backwards, and at 0 laps does nothing', () => {
+    const hall = new SearchHall({ vaults: 8, pool, rng: fixedKey(2) });
+    hall.pullLever();
+    expect(hall.mirror()).toBe('idle');
+    hall.lap(); hall.lap();
+    expect(hall.mirror()).toBe('unlap');
+    expect(hall.laps).toBe(1);
+    expect(hall.marked).toBe(true);
+  });
+
+  it('matches the true amplitudes for 400 random press sequences', () => {
+    for (let trial = 0; trial < 400; trial++) {
+      const vaults = [4, 8, 16][trial % 3];
+      const key = trial % vaults;
+      const hall = new SearchHall({ vaults, pool, rng: () => (key + 0.5) / vaults });
+      const sim = simulate(vaults, key);
+      hall.pullLever();
+      for (let step = 0; step < 12; step++) {
+        if (Math.random() < 0.5) { hall.fountain(); sim.fountain(); } else if (hall.mirror() !== 'cap') sim.mirror();
+        hall.lamps().forEach((p, i) => expect(p).toBeCloseTo(sim.probs()[i], 9));
+      }
+    }
+  });
+});
