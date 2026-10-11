@@ -204,7 +204,7 @@ Room 3 is under 0.6, so in noisy mode it reads from the ideal pool: `groverPoolM
 ## Working rules for Claude Code
 
 - Don't change the circuit, the XOR relabel, the formula or the lap cap of 4.
-- Lamps come from `lampLevels`; reads come from the pool through `groverRead`. Never mix them.
+- Lamps come from `lampLevels`; reads come from the pool through `groverRead`. Never mix them. One exception: after a read the lamps collapse onto the vault that was read (a measurement leaves only its result), until the lever starts a new search.
 - No quantum vocabulary on screen except the reveal card and the opt-in physics card (`HallPitch`, opened with P, like Level 1's pitch).
 - If time is short, Room 2 alone (lamps on) is a complete level.
 - Never lock Level 2 behind Level 1; the Level select always offers both.

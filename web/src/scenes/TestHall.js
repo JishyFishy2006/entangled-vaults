@@ -28,6 +28,8 @@ const LOOP = { x1: 176, x2: 400 };
 const BRIDGE = { x1: 176, x2: 416, y: 252 };
 const VAULT_AREA = { x1: 432, x2: 640 };
 const SPAWN = { fire: 32, water: 60 };
+const EVEN_FLAME = 0.6;        // flame brightness when the odds are evenly split
+const READ_REVEAL_MS = 3000;   // length of the lantern roulette on a read
 
 // Vault positions: one row on the floor, or (16 vaults) a second row on the shelf.
 function vaultLayout(vaults) {
@@ -70,7 +72,7 @@ export class TestHall extends Phaser.Scene {
       solid(VAULT_AREA.x1, SHELF_Y, VAULT_AREA.x2, 16);
     }
 
-    panel(this, W / 2 - 200, 2, 400, 40);
+    panel(this, 16, 2, W - 32, 40);
     label(this, W / 2, 14, `${this.dev ? '' : 'THE HALL OF ECHOES - '}ROOM ${room.id} - ${room.vaults} VAULTS${room.lampsOn ? '' : ' - DARK'}`, 8, COLORS.gold);
     this.status = label(this, W / 2, 30, 'Fireboy: pull the lever to begin.', 8, COLORS.text);
     this.add.graphics().fillStyle(DB.black, 0.85).fillRect(0, H - 14, W, 14).setDepth(6);
@@ -153,13 +155,15 @@ export class TestHall extends Phaser.Scene {
       this.hall.pullLever();
     } else if (hero.id === 'fire' && world.overlap(rect, this.dais.zone)) {
       if (!this.hall.searching) {
-        this.say(this.hall.state === 'read' ? 'A vault is already unsealed.' : 'Nothing to read yet: pull the lever.', COLORS.dim);
+        this.say(this.hall.state === 'read' ? 'The echo is spent. Pull the lever to search again.' : 'Nothing to read yet: pull the lever.', COLORS.dim);
         return;
       }
       this.dais.flash();
       this.hall.read();
     } else if (vault) {
-      if (vault.state === 'unsealed') {
+      if (this.revealing) {
+        this.say('Wait for the lanterns to choose...', COLORS.dim);
+      } else if (vault.state === 'unsealed') {
         this.hall.open(vault.index);
       } else if (hero.id === 'fire' && vault.state === 'sealed') {
         if (this.hall.pry(vault.index) === 'denied') this.say('Sealed tight. Only the dais can unseal one here.', COLORS.dim);
@@ -170,9 +174,9 @@ export class TestHall extends Phaser.Scene {
   }
 
   onHall(event, data) {
-    if (event === 'spread') { this.loop.reset(); this.say(this.hall.lampsOn ? 'The lamps glow evenly. Watergirl: swim laps!' : 'The search begins. Watergirl: swim laps!'); }
+    if (event === 'spread') { this.stopRoulette(); this.loop.reset(); this.say(this.hall.lampsOn ? 'The lamps glow evenly. Watergirl: swim laps!' : 'The search begins. Watergirl: swim laps!'); }
     if (event === 'lap') { sfx.pickup(this); this.say(data >= 4 ? 'Lap 4. The loop gate closes.' : `Lap ${data}.`); }
-    if (event === 'read') { sfx.ready(this); this.say(`Vault ${data + 1} unseals! Open it.`, COLORS.gold); }
+    if (event === 'read') { sfx.ready(this); this.say('The lanterns are choosing...', COLORS.gold); this.startRoulette(data); }
     if (event === 'cleared') { sfx.open(this); this.onCleared(); }
     if (event === 'lava') this.flood(data);
     if (this.mural && this.hall.failedReads >= MURAL_AFTER_FAILED_READS) this.mural.show();
@@ -188,12 +192,58 @@ export class TestHall extends Phaser.Scene {
     const h = this.hall;
     this.dial.set(h.laps);
     this.loop.setGate(h.gateClosed);
-    h.lamps().forEach((level, i) => this.lamps[i].set(level));
+    if (!this.revealing) {
+      // Flame: compared with an even split (all lit at the start). Glow: the chance itself.
+      h.lamps().forEach((level, i) => this.lamps[i].set(EVEN_FLAME * level * h.vaults, level));
+    }
     this.vaults.forEach(v => {
-      const state = h.state === 'opened' && v.index === h.key ? 'open' : h.unsealed === v.index && h.state === 'read' ? 'unsealed' : 'sealed';
+      const unsealed = h.unsealed === v.index && h.state === 'read' && !this.revealing;
+      const state = h.state === 'opened' && v.index === h.key ? 'open' : unsealed ? 'unsealed' : 'sealed';
       v.setState(state, state === 'open');
     });
     this.updateDebug();
+  }
+
+  // The read, dramatised: lanterns blink one after another, slowing over ~3 s, and land on
+  // the vault the search picked. Every vault takes its turn, so the order gives nothing away.
+  startRoulette(chosen) {
+    this.stopRoulette();
+    this.revealing = true;
+    const n = this.lamps.length;
+    const delays = [];
+    for (let total = 0, i = 0; total < READ_REVEAL_MS; i++) {
+      const d = 45 + 260 * (i / 28) ** 2;
+      delays.push(d);
+      total += d;
+    }
+    let lit = ((chosen - delays.length) % n + n) % n;    // lands on `chosen` on the last step
+    let at = 0;
+    this.rouletteTimers = delays.map((d, i) => {
+      at += d;
+      return this.time.delayedCall(at, () => {
+        lit = (lit + 1) % n;
+        this.lamps.forEach((lamp, j) => lamp.blink(j === lit));
+        sfx.tick(this);
+        if (i === delays.length - 1) this.time.delayedCall(350, () => this.endRoulette(chosen));
+      });
+    });
+  }
+
+  stopRoulette() {
+    for (const t of this.rouletteTimers ?? []) t.remove();
+    this.rouletteTimers = [];
+    this.revealing = false;
+  }
+
+  endRoulette(chosen) {
+    this.revealing = false;
+    this.refresh();                 // unseals the door (with its effect) and collapses the lamps
+    this.afterReveal(chosen);
+  }
+
+  // What to say once the read lands. The game's hall adds Room 1's nudge.
+  afterReveal(vault) {
+    this.say(`Vault ${vault + 1} unseals! Open it.`, COLORS.gold);
   }
 
   updateDebug() {

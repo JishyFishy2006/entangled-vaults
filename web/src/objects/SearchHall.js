@@ -85,9 +85,14 @@ export class SearchHall {
     return 'lava';
   }
 
-  // Brightness per vault: dark before the lever, or in dark rooms.
+  // Chance per vault, for the lamps. Dark rooms show nothing. Before the lever the
+  // odds are even (the formula at 0 laps). After a read the search is spent: the
+  // state has collapsed onto the vault that was read, so only its lamp stays lit.
   lamps() {
-    if (!this.lampsOn || this.state === 'sealed') return new Array(this.vaults).fill(0);
-    return lampLevels(this.vaults, this.laps, this.key);
+    if (!this.lampsOn) return new Array(this.vaults).fill(0);
+    if (this.state === 'read' || (this.state === 'opened' && this.unsealed !== null)) {
+      return Array.from({ length: this.vaults }, (_, v) => (v === this.unsealed ? 1 : 0));
+    }
+    return lampLevels(this.vaults, this.state === 'sealed' ? 0 : this.laps, this.key);
   }
 }

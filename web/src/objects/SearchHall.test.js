@@ -6,10 +6,10 @@ const pool = JSON.parse(readFileSync(new URL('../../public/pools/grover-ideal.js
 const fixedKey = key => () => (key + 0.5) / 8;    // rng that always picks `key` in an 8-vault room
 
 describe('SearchHall', () => {
-  it('starts sealed with dark lamps, and ignores laps and reads before the lever', () => {
+  it('starts sealed with every lamp evenly lit, and ignores laps and reads before the lever', () => {
     const hall = new SearchHall({ vaults: 8, pool });
     expect(hall.state).toBe('sealed');
-    expect(hall.lamps().every(l => l === 0)).toBe(true);
+    hall.lamps().forEach(l => expect(l).toBeCloseTo(1 / 8, 12));
     expect(hall.lap()).toBe(false);
     expect(hall.read()).toBe(null);
   });
@@ -44,6 +44,16 @@ describe('SearchHall', () => {
     hall.pullLever();
     expect(hall.laps).toBe(0);
     expect(hall.state).toBe('spread');
+  });
+
+  it('collapses the lamps onto the read vault, and the lever spreads them out again', () => {
+    const hall = new SearchHall({ vaults: 8, pool });
+    hall.pullLever(); hall.lap(); hall.lap();
+    const v = hall.read();
+    expect(hall.lamps()).toEqual(Array.from({ length: 8 }, (_, i) => (i === v ? 1 : 0)));
+    expect(hall.read()).toBe(null);            // the search is spent: no second read
+    hall.pullLever();
+    hall.lamps().forEach(l => expect(l).toBeCloseTo(1 / 8, 12));
   });
 
   it('allows an early read mid-laps, using the laps done so far', () => {

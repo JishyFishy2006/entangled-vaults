@@ -9,7 +9,7 @@ import { TestHall } from './TestHall.js';
 // Level 2: rooms 1 -> 2 -> 3, then the reveal card. Built on the gray-box hall
 // (same objects and rules) without its debug keys.
 const INTRO = {
-  1: 'Fireboy: pull the lever. Watergirl: swim the loop. Then read on the dais.',
+  1: 'Try a read first: Fireboy, pull the lever, then read on the dais.',
   2: 'Eight vaults. Watch the lamps as you swim.',
   3: 'Sixteen vaults, and the lamps are dark.',
 };
@@ -23,7 +23,8 @@ export class HallOfEchoes extends TestHall {
     super.create();
     this.cameras.main.fadeIn(300, 20, 12, 28);
     this.say(INTRO[this.room.id], COLORS.gold);
-    keyHint(this, 560, 14, ['P'], 'physics').setDepth(30);
+    keyHint(this, 556, H - 7, ['P'], 'physics').setDepth(30);
+    for (const c of this.children.list) if (c.type === 'Container' && c.y === H - 7) c.setDepth(30);   // its key cap
     this.input.keyboard.on('keydown-P', () => this.physicsCard());
     // Keys released while the card was up would otherwise stay held.
     this.events.on('resume', () => this.input.keyboard.resetKeys());
@@ -34,6 +35,18 @@ export class HallOfEchoes extends TestHall {
     if (this.scene.isPaused()) return;
     this.scene.launch('HallPitch', { from: this.scene.key });
     this.scene.pause();
+  }
+
+  // Room 1's nudge: show a blind guess first, then what one lap does.
+  afterReveal(vault) {
+    const laps = this.hall.lastRead?.laps;
+    if (this.room.id === 1 && laps === 0) {
+      this.say(`Vault ${vault + 1}: a blind guess, 1 in 4. Pull the lever, swim one lap, read again.`, COLORS.gold);
+    } else if (this.room.id === 1 && laps === 1) {
+      this.say(`Vault ${vault + 1} unseals. One lap, and the read is certain. Open it!`, COLORS.gold);
+    } else {
+      super.afterReveal(vault);
+    }
   }
 
   onCleared() {
