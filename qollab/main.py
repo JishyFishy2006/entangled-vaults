@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MIT  (c) 2026 JishyFishy2006. Full text: LICENSE.txt
 # Entangled Vaults on Qollab: the game's two quantum experiments, run live on the
 # backend you pick (Select QPU), as ONE batched job, so it also works on IonQ, which
 # takes one job per run.
